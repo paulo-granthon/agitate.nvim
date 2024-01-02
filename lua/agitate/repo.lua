@@ -19,7 +19,9 @@ M.AgitateRepositoryInitGitHub = function ()
     util.execute_command('git push -u origin main')
 
     -- Open fugitive status window
-    vim.cmd('G')
+    if options.repo.show_status_on_init then
+        vim.cmd('G')
+    end
 end
 
 return M

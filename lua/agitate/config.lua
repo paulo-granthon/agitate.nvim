@@ -3,6 +3,9 @@ local M = {}
 ---@class Config
 local defaults = {
     github_username = nil,
+    repo = {
+        show_status_on_init = false,
+    },
 }
 
 ---@type Config
