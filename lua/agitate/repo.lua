@@ -3,7 +3,7 @@ local M = {}
 local util = require('agitate.util')
 
 -- Function to initialize a new repository and push to GitHub
-M.AgitateRepositoryInitGitHub = function ()
+M.InitGitHub = function ()
 
     local options = require('agitate.config').options
 
