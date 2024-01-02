@@ -8,9 +8,11 @@ function M.load(opts)
     if opts then
         config.extend(opts)
     end
-    repo.setup()
 end
 
-M.setup = config.setup
+function M.setup()
+    config.setup()
+    repo.setup()
+end
 
 return M
