@@ -10,12 +10,6 @@ M.AgitateRepositoryInitGitHub = function ()
     local directory_name = util.get_directory_name()
     local github_username = options.github_username
 
-    -- for field, option in pairs(options) do
-    --     print('options.' .. field .. ' = ' .. option)
-    -- end
-    --
-    -- print('github_username = '.. github_username)
-
     util.execute_command('echo "# ' .. directory_name .. '" >> README.md')
     util.execute_command('git init')
     util.execute_command('git add README.md')
