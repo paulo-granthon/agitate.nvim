@@ -24,4 +24,15 @@ M.InitGitHub = function ()
     end
 end
 
+-- Create vim commands
+M.setup = function()
+    vim.api.nvim_create_user_command('AgitateRepoInitGitHub', function()
+        require('agitate.repo').InitGitHub()
+    end, {
+        desc = 'Initializes the current directory as a repository at \'github.com/github_username/current_directory\'',
+    })
+
+    print('user_command was definitely created')
+end
+
 return M

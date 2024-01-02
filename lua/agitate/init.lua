@@ -1,4 +1,5 @@
 local config = require('agitate.config')
+local repo = require('agitate.repo')
 
 local M = {}
 
@@ -7,6 +8,7 @@ function M.load(opts)
     if opts then
         config.extend(opts)
     end
+    repo.setup()
 end
 
 M.setup = config.setup
