@@ -1,5 +1,4 @@
 local config = require('agitate.config')
-local repo = require('agitate.repo')
 
 local M = {}
 
