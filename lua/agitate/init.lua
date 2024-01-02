@@ -6,9 +6,8 @@ local M = {}
 ---@param opts Config|nil
 function M.load(opts)
     if opts then
-        require("agitate.config").extend(opts)
+        config.extend(opts)
     end
-    repo.setup()
 end
 
 M.setup = config.setup
