@@ -11,12 +11,12 @@ M.InitGitHub = function ()
     local github_username = options.github_username
 
     util.execute_command('echo "# ' .. directory_name .. '" >> README.md')
-    util.execute_command('git init')
-    util.execute_command('git add README.md')
-    util.execute_command('git commit -m "first commit"')
-    util.execute_command('git branch -M main')
-    util.execute_command('git remote add origin https://github.com/' .. github_username .. '/' .. directory_name .. '.git')
-    util.execute_command('git push -u origin main')
+    vim.cmd('G init')
+    vim.cmd('G add README.md')
+    vim.cmd('G commit -m "first commit"')
+    vim.cmd('G branch -M main')
+    vim.cmd('G remote add origin https://github.com/' .. github_username .. '/' .. directory_name .. '.git')
+    vim.cmd('G push -u origin main')
 
     -- Open fugitive status window
     if options.repo.show_status_on_init then
