@@ -31,8 +31,6 @@ M.setup = function()
     end, {
         desc = 'Initializes the current directory as a repository at \'github.com/github_username/current_directory\'',
     })
-
-    print('user_command was definitely created')
 end
 
 return M
