@@ -8,10 +8,7 @@ end
 
 -- Function to execute shell commands
 function M.execute_command(command)
-    local output = vim.fn.systemlist(command)
-    for _, line in ipairs(output) do
-        print(line)
-    end
+    return vim.fn.systemlist(command)
 end
 
 return M
