@@ -3,7 +3,7 @@ local M = {}
 local util = require('agitate.util')
 
 -- Function to initialize a new repository and push to GitHub
-M.InitGitHub = function ()
+function M.InitGitHub()
 
     local options = require('agitate.config').options
 
@@ -25,7 +25,7 @@ M.InitGitHub = function ()
 end
 
 -- Create vim commands
-M.setup = function()
+function M.setup()
     vim.api.nvim_create_user_command('AgitateRepoInitGitHub', function()
         require('agitate.repo').InitGitHub()
     end, {
