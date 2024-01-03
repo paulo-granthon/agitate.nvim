@@ -2,6 +2,16 @@ local M = {}
 
 function M.setup()
     vim.api.nvim_create_user_command(
+        'AgitateRepoCreateGitHub',
+        function(fargs)
+            require('agitate.core.repo').CreateGitHubCurl(fargs)
+        end, {
+            nargs = '?',
+            desc = 'Creates a new repository at \'github.com/<github_username>/<argument or current_directory>/\'',
+        }
+    )
+
+    vim.api.nvim_create_user_command(
         'AgitateRepoInitGitHub',
         function()
             require('agitate.core.repo').InitGitHub()
