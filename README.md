@@ -1,2 +1,1 @@
 # agitate.nvim
-# agitate.nvim
