@@ -12,15 +12,30 @@ function M.CreateGitHubCurl(optional_repo_name)
     local github_access_token = options.github_access_token
 
     if not github_username or not github_access_token then
-        return error('Agitate | CreateGitHub | Error - Undefined GitHub Username or Access Token')
+        return error('Agitate | CreateGitHubCurl | Error - Undefined GitHub Username or Access Token')
     end
 
-    util.execute_command(
-        'curl' ..
-        ' -H ' .. '"Authorization: token ' .. github_access_token .. '"' ..
-        ' https://api.github.com/user/repos' ..
-        ' -d ' .. [['{"name":"]] .. new_github_repository_name .. [["}']]
+    local repository_created_response = vim.json.decode(
+        util.flatten_table(
+            util.execute_command(
+                'curl' ..
+                ' -H ' .. '"Authorization: token ' .. github_access_token .. '"' ..
+                ' https://api.github.com/user/repos' ..
+                ' -d ' .. [['{"name":"]] .. new_github_repository_name .. [["}']]
+            ), {
+                skip = 3
+            }
+        )
     )
+
+    if repository_created_response.errors then
+        return vim.api.nvim_err_writeln(
+            'Agitate | CreateGitHubCurl | Error:' ..
+            '\nFailed to create repository at' ..
+            ' `https://github.com/' .. github_username .. '/' .. new_github_repository_name .. '/`' ..
+            '\nReason: `' .. repository_created_response.errors[1].message .. '`'
+        )
+    end
 end
 
 ---Initialize a new repository and push to GitHub
