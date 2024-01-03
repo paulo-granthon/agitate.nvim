@@ -5,7 +5,7 @@ function M.CreateCheckoutAndPush(branch_name)
         vim.cmd('G checkout -b ' .. branch_name)
         vim.cmd('G push -u origin ' .. branch_name)
     else
-       print('Please provide an argument for the name of the branch')
+        print('Please provide an argument for the name of the branch')
     end
 end
 
