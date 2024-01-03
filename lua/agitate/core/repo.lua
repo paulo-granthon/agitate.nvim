@@ -21,9 +21,6 @@ function M.CreateGitHubCurl(optional_repo_name)
         ' https://api.github.com/user/repos' ..
         ' -d ' .. [['{"name":"]] .. new_github_repository_name .. [["}']]
     )
-
-    -- Remove last command from history to prevent leaking the access token
-    util.execute_command('history -d $(($HISTCMD - 1)); history -w;')
 end
 
 ---Initialize a new repository and push to GitHub
