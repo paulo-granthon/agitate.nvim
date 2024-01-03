@@ -2,6 +2,29 @@ local M = {}
 
 local util = require('agitate.util')
 
+-- Create a new repository on GitHub
+function M.CreateGitHubCurl(optional_repo_name)
+    local options = require('agitate.config').options
+
+    local new_github_repository_name = optional_repo_name or util.get_directory_name()
+    local github_username = options.github_username
+    local github_access_token = options.github_access_token
+
+    if not github_username or not github_access_token then
+        return error('Agitate | CreateGitHub | Error - Undefined GitHub Username or Access Token')
+    end
+
+    util.execute_command(
+        'curl' ..
+        ' -H ' .. '"Authorization: token ' .. github_access_token .. '"' ..
+        ' https://api.github.com/user/repos' ..
+        ' -d ' .. [['{"name":"]] .. new_github_repository_name .. [["}']]
+    )
+
+    -- Remove last command from history to prevent leaking the access token
+    util.execute_command('history -d $(($HISTCMD - 1)); history -w;')
+end
+
 -- Initialize a new repository and push to GitHub
 function M.InitGitHub()
     local options = require('agitate.config').options
