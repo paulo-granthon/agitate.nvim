@@ -31,7 +31,7 @@ function M.InitGitHub(optional_repo_name)
     local github_repository_name = optional_repo_name or util.get_directory_name()
     local github_username = options.github_username
 
-    util.execute_command('echo "# ' .. github_repository_name .. '" >> README.md')
+    vim.pretty_print(util.execute_command('echo "# ' .. github_repository_name .. '" >> README.md'))
     vim.cmd('G init')
     vim.cmd('G add README.md')
     vim.cmd('G commit -m "first commit"')
