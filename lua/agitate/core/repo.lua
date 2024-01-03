@@ -26,7 +26,8 @@ function M.CreateGitHubCurl(optional_repo_name)
     util.execute_command('history -d $(($HISTCMD - 1)); history -w;')
 end
 
--- Initialize a new repository and push to GitHub
+---Initialize a new repository and push to GitHub
+---@param optional_repo_name? string The name of the repository to use as remote origin. Default: current directory
 function M.InitGitHub(optional_repo_name)
     local options = require('agitate.config').options
 
