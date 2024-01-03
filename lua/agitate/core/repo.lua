@@ -2,7 +2,8 @@ local M = {}
 
 local util = require('agitate.util')
 
--- Create a new repository on GitHub
+---Create a new repository on GitHub
+---@param optional_repo_name? string The name of the repository to create. Default: current directory
 function M.CreateGitHubCurl(optional_repo_name)
     local options = require('agitate.config').options
 
