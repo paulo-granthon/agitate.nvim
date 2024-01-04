@@ -34,11 +34,13 @@ function M.post_new_repo(access_token, repository)
     )
 
     -- Trim any noise left of the first `{` or right of the last `}`
-    local ok, gsubbed_github_response = util.json_lr_trim(flattened_github_response)
-    if not ok then return ok, error.unhandled('service.github.post_new_repo') end
+    local json_lr_trim_ok, repo_json = util.json_lr_trim(flattened_github_response)
+    if not json_lr_trim_ok then
+        return json_lr_trim_ok, error.unhandled('service.github.post_new_repo')
+    end
 
     -- Return the processed response as a lua table
-    return true, vim.json.decode(gsubbed_github_response)
+    return true, vim.json.decode(repo_json)
 end
 
 return M
