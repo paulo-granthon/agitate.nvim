@@ -25,19 +25,17 @@ function M.CreateGitHubCurl(optional_repo_name)
         print(repository_created_response)
     end
 
-    local new_github_repository_url = '`https://github.com/' ..
-        github_username .. '/' .. new_github_repository_name .. '/`'
-
     if repository_created_response.errors then
         return vim.api.nvim_err_writeln(
             'Agitate | CreateGitHubCurl | Error:' ..
-            '\nFailed to create repository at ' .. new_github_repository_url ..
+            '\nFailed to create repository at ' ..
+            ' `https://github.com/' .. github_username .. '/' .. new_github_repository_name .. '/`' ..
             '\nReason: `' .. repository_created_response.errors[1].message .. '`'
         )
     end
 
     print(
-        'Created remote GitHub repository at ' .. new_github_repository_url ..
+        'Created remote GitHub repository at ' .. repository_created_response.html_url ..
         '\nYou can initialize the current directory to this remote origin with `:AgitateRepoInitGitHub ' ..
         new_github_repository_name .. '`'
     )
