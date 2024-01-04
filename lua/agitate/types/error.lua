@@ -1,0 +1,2 @@
+---@class AgitateError
+---@field message string Message of the error
