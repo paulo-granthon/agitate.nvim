@@ -1,8 +1,17 @@
 local M = {}
 
-local util = require('agitate.util')
-local error = require('agitate.error')
-require('types.github')
+local ok, error = pcall(require, 'agitate.error')
+if not ok then
+    return vim.api.nvim_err_writeln(require('agitate.const.error').import)
+end
+
+local util_ok, util_or_err = pcall(require, 'agitate.util')
+if not util_ok then return error.throw(util_or_err) end
+
+local types_ok, types_or_err = pcall(require, 'agitate.types.github')
+if not types_ok then return error.throw(types_or_err) end
+
+local util = util_or_err
 
 ---Creates a new remote repository through the GitHub API
 ---@param access_token string Your GitHub PAT (Personal Access Token)

@@ -1,7 +1,18 @@
 local M = {}
 
-local util = require('agitate.util')
-local github_service = require('agitate.service.github')
+local ok, error = pcall(require, 'agitate.error')
+if not ok then
+    return vim.api.nvim_err_writeln(require('agitate.const.error').import)
+end
+
+local util_ok, util_or_err = pcall(require, 'agitate.util')
+if not util_ok then return error.throw(util_or_err) end
+
+local github_ok, github_or_err = pcall(require, 'agitate.service.github')
+if not github_ok then return error.throw(github_or_err) end
+
+local util = util_or_err
+local github = github_or_err
 
 ---Create a new repository on GitHub
 ---@param optional_repo_name? string The name of the repository to create. Default: current directory
