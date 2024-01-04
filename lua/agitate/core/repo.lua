@@ -1,6 +1,7 @@
 local M = {}
 
 local util = require('agitate.util')
+local github_service = require('agitate.service.github')
 
 ---Create a new repository on GitHub
 ---@param optional_repo_name? string The name of the repository to create. Default: current directory
@@ -15,27 +16,31 @@ function M.CreateGitHubCurl(optional_repo_name)
         return error('Agitate | CreateGitHubCurl | Error - Undefined GitHub Username or Access Token')
     end
 
-    local repository_created_response = vim.json.decode(
-        util.flatten_table(
-            util.execute_command(
-                'curl' ..
-                ' -H ' .. '"Authorization: token ' .. github_access_token .. '"' ..
-                ' https://api.github.com/user/repos' ..
-                ' -d ' .. [['{"name":"]] .. new_github_repository_name .. [["}']]
-            ), {
-                skip = 3
-            }
-        )
+    local ok, repository_created_response = github_service.post_new_repo(
+        github_access_token,
+        new_github_repository_name
     )
+
+    if not ok then
+        print(repository_created_response)
+    end
+
+    local new_github_repository_url = '`https://github.com/' ..
+        github_username .. '/' .. new_github_repository_name .. '/`'
 
     if repository_created_response.errors then
         return vim.api.nvim_err_writeln(
             'Agitate | CreateGitHubCurl | Error:' ..
-            '\nFailed to create repository at' ..
-            ' `https://github.com/' .. github_username .. '/' .. new_github_repository_name .. '/`' ..
+            '\nFailed to create repository at ' .. new_github_repository_url ..
             '\nReason: `' .. repository_created_response.errors[1].message .. '`'
         )
     end
+
+    print(
+        'Created remote GitHub repository at ' .. new_github_repository_url ..
+        '\nYou can initialize the current directory to this remote origin with `:AgitateRepoInitGitHub ' ..
+        new_github_repository_name .. '`'
+    )
 end
 
 ---Initialize a new repository and push to GitHub
