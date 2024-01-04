@@ -12,9 +12,6 @@ end
 
 ---@class FlattenTableOptions
 ---@field skip? number The number of lines to skip before constructing the table
-local flatten_table_opts_example = {
-    skip = 0
-}
 
 ---Flattens a table of String into a single String
 ---@param table table the table to flatten
