@@ -30,4 +30,23 @@ function M.flatten_table(table, opts)
     return result
 end
 
+---Removes any characters outside of the `json` object in the provided string
+---@param input_string string String containing a `json` object
+---@return boolean Ok If proccess was executed successfully 
+---@return string|nil Json Trimmed `json` string if found
+function M.json_lr_trim(input_string)
+    -- Find the position of the first '{' and the last '}' in the string
+    local start_pos = input_string:find('{')
+    local end_pos = input_string:reverse():find('}')
+
+    -- If '{' and '}' are found, extract the substring between them
+    if start_pos and end_pos then
+        end_pos = #input_string - end_pos + 1
+        return true, input_string:sub(start_pos, end_pos)
+    end
+
+    -- no `json` found
+    return false
+end
+
 return M
