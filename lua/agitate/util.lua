@@ -32,7 +32,7 @@ end
 
 ---Removes any characters outside of the `json` object in the provided string
 ---@param input_string string String containing a `json` object
----@return boolean Ok If proccess was executed successfully 
+---@return boolean Ok If proccess was executed successfully
 ---@return string|nil Json Trimmed `json` string if found
 function M.json_lr_trim(input_string)
     -- Find the position of the first '{' and the last '}' in the string
