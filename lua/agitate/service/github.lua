@@ -1,21 +1,14 @@
 local M = {}
 
 local util = require('agitate.util')
-
----@class SuccessJson
----@field html_url string The URL of the repository
-
----@class ErrorJson
----@field errors ErrorJsonError[] Errors during the request
-
----@class ErrorJsonError
----@field message string Message of the error
+require('types.github')
 
 ---Creates a new remote repository through the GitHub API
 ---@param access_token string Your GitHub PAT (Personal Access Token)
 ---@param repository string Name of the repository to be created
 ---@return boolean Ok If proccess was executed successfully
----@return SuccessJson|ErrorJson|string Json Response properly formatted for the rest of `agitated.nvim`
+---@return GitHubSuccessResponse|GitHubErrorResponse|string Response
+---Response properly formatted for the rest of `agitated.nvim`
 function M.post_new_repo(access_token, repository)
     -- Execute curl to create the repository through the GitHub api
     local raw_github_response = util.execute_command(
