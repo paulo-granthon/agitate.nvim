@@ -1,6 +1,8 @@
 local M = {}
 
----@class Config
+require('types.config')
+
+---@type Config
 local defaults = {
     github_username = nil,
     repo = {
