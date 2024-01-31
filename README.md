@@ -4,7 +4,9 @@ Advanced Git and GitHub abstraction layer for Neovim.
 
 # todo!()
 
-- [ ] Repository:
+Features planned for implementation
+
+- [ ] Repository functions:
     - [ ] Add `.gitiginore` from github template
     - [ ] Add `LICENSE` from github template
 
