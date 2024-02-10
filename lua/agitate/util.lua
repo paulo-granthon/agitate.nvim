@@ -2,12 +2,12 @@ local M = {}
 
 -- Function to get the current directory name
 function M.get_directory_name()
-    return vim.fn.getcwd():match("^.+/(.+)$")
+  return vim.fn.getcwd():match('^.+/(.+)$')
 end
 
 -- Function to execute shell commands
 function M.execute_command(command)
-    return vim.fn.systemlist(command)
+  return vim.fn.systemlist(command)
 end
 
 ---@class FlattenTableOptions
@@ -17,16 +17,16 @@ end
 ---@param table table the table to flatten
 ---@param opts? FlattenTableOptions the optional options table
 function M.flatten_table(table, opts)
-    local result = ''
-    local skip = opts and opts.skip or 0
-    for _, line in ipairs(table) do
-        if skip > 0 then
-            skip = skip - 1
-        else
-            result = result .. line
-        end
+  local result = ''
+  local skip = opts and opts.skip or 0
+  for _, line in ipairs(table) do
+    if skip > 0 then
+      skip = skip - 1
+    else
+      result = result .. line
     end
-    return result
+  end
+  return result
 end
 
 ---Removes any characters outside of the `json` object in the provided string
@@ -34,18 +34,18 @@ end
 ---@return boolean Ok If proccess was executed successfully
 ---@return string|nil Json Trimmed `json` string if found
 function M.json_lr_trim(input_string)
-    -- Find the position of the first '{' and the last '}' in the string
-    local start_pos = input_string:find('{')
-    local end_pos = input_string:reverse():find('}')
+  -- Find the position of the first '{' and the last '}' in the string
+  local start_pos = input_string:find('{')
+  local end_pos = input_string:reverse():find('}')
 
-    -- If '{' and '}' are found, extract the substring between them
-    if start_pos and end_pos then
-        end_pos = #input_string - end_pos + 1
-        return true, input_string:sub(start_pos, end_pos)
-    end
+  -- If '{' and '}' are found, extract the substring between them
+  if start_pos and end_pos then
+    end_pos = #input_string - end_pos + 1
+    return true, input_string:sub(start_pos, end_pos)
+  end
 
-    -- no `json` found
-    return false
+  -- no `json` found
+  return false
 end
 
 return M
