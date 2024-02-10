@@ -63,13 +63,13 @@ function M.InitGitHub(optional_repo_name)
     util.execute_command('echo "# ' .. github_repository_name .. '" >> README.md')
     vim.cmd('G init')
     vim.cmd('G add README.md')
-    vim.cmd('G commit -m "' .. options.repo.first_commit_message .. '"')
+    vim.cmd('G commit -m "' .. options.repo.init.first_commit_message .. '"')
     vim.cmd('G branch -M main')
     vim.cmd('G remote add origin https://github.com/' .. github_username .. '/' .. github_repository_name .. '.git')
     vim.cmd('G push -u origin main')
 
     -- Open fugitive status window
-    if options.repo.show_status_on_init then
+    if options.repo.init.show_status then
         vim.cmd('G')
     end
 end

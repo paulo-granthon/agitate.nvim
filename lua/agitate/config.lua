@@ -12,8 +12,10 @@ if not types_ok then return error.throw(types_or_err) end
 local defaults = {
     github_username = nil,
     repo = {
-        show_status_on_init = false,
-        first_commit_message = "first commit",
+        init = {
+            show_status = false,
+            first_commit_message = "first commit",
+        }
     },
 }
 
