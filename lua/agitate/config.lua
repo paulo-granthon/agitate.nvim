@@ -13,6 +13,7 @@ local defaults = {
     github_username = nil,
     repo = {
         show_status_on_init = false,
+        first_commit_message = "first commit",
     },
 }
 
