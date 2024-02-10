@@ -22,10 +22,9 @@ function M.flatten_table(table, opts)
     for _, line in ipairs(table) do
         if skip > 0 then
             skip = skip - 1
-            goto continue
+        else
+            result = result .. line
         end
-        result = result .. line
-        ::continue::
     end
     return result
 end
