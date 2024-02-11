@@ -50,9 +50,9 @@ to bind them to a keybinding to be able to use `Agitate` with less friction.
 vimscript:
 
 ```vim
-nnoremap <leader>grc :AgitateRepoCreateGitHub
-nnoremap <leader>gri :AgitateRepoInitGitHub
-nnoremap <leader>gbc :AgitateBranchCreateCheckoutAndPush
+nnoremap <leader>gil :AgitateRepoInitGitHub
+nnoremap <leader>gir :AgitateRepoCreateGitHub
+nnoremap <leader>gbp :AgitateBranchCreateCheckoutAndPush
 ```
 
 lua:
