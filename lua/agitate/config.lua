@@ -13,6 +13,7 @@ end
 ---@type Config
 local defaults = {
   github_username = nil,
+  github_access_token = nil,
   repo = {
     init = {
       show_status = false,
