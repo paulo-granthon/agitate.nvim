@@ -89,7 +89,7 @@ use {
 }
 ```
 
-### Configuration
+## Configuration
 
 In order to communicate with the GitHub API and effectively use Agitate, you need
 to provide your GitHub username and an access token. The **Repo** commands only
