@@ -19,12 +19,27 @@ local util = util_or_err
 local github = github_or_err
 
 ---Create a new repository on GitHub
----@param optional_repo_name? string The name of the repository to create. Default: current directory
-function M.CreateGitHubCurl(optional_repo_name)
+---@param optional_parameters? table<string> The value at each index depends on the number of parameters passed:
+--- 1 optional_parameter: The name of the repository to create.
+--- 2 optional_parameters: The first value is the GitHub username or organization
+---    and the second is the name of the repository to create.
+---
+--- Defaults: [1] GitHub username from config, [2] Current directory name.
+function M.CreateGitHubCurl(optional_parameters)
   local options = require('agitate.config').options
 
-  local new_github_repository_name = optional_repo_name or util.get_directory_name()
+  local new_github_repository_name = util.get_directory_name()
   local github_username = options.github_username
+
+  if optional_parameters then
+    if #optional_parameters == 1 then
+      new_github_repository_name = optional_parameters[1]
+    elseif #optional_parameters == 2 then
+      github_username = optional_parameters[1]
+      new_github_repository_name = optional_parameters[2]
+    end
+  end
+
   local github_access_token = options.github_access_token
 
   if not github_username or not github_access_token then

@@ -12,7 +12,7 @@ function M.setup()
       return error.throw(repo_or_err)
     end
 
-    repo_or_err.CreateGitHubCurl(opts.fargs and opts.fargs[1] or nil)
+    repo_or_err.CreateGitHubCurl(opts.fargs and { opts.fargs[1] } or nil)
   end, {
     nargs = '?',
     desc = "Creates a new repository at 'github.com/<github_username>/<argument or current_directory>/'",
