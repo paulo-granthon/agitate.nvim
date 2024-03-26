@@ -24,7 +24,7 @@ function M.setup()
       return error.throw(repo_or_err)
     end
 
-    repo_or_err.InitGitHub(opts.fargs and opts.fargs[1] or nil)
+    repo_or_err.InitGitHub(opts.fargs and { opts.fargs[1] } or nil)
   end, {
     nargs = '?',
     desc = "Initialize the current directory as a repository at 'github.com/<github_username>/<argument or current_directory>/'",

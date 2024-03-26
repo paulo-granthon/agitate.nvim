@@ -77,12 +77,27 @@ function M.CreateGitHubCurl(optional_parameters)
 end
 
 ---Initialize a new repository and push to GitHub
----@param optional_repo_name? string The name of the repository to use as remote origin. Default: current directory
-function M.InitGitHub(optional_repo_name)
+---@param optional_parameters? table<string> The value at each index depends on the number of parameters passed:
+--- 1 optional_parameter: The name of the repository to create.
+--- 2 optional_parameters: The first value is the GitHub username or organization
+---    and the second is the name of the repository to create.
+---
+--- Defaults: [1] GitHub username from config, [2] Current directory name.
+function M.InitGitHub(optional_parameters)
   local options = require('agitate.config').options
 
-  local github_repository_name = optional_repo_name or util.get_directory_name()
+  local github_repository_name = util.get_directory_name()
   local github_username = options.github_username
+
+  if optional_parameters then
+    if #optional_parameters == 1 then
+      github_repository_name = optional_parameters[1]
+    elseif #optional_parameters == 2 then
+      github_username = optional_parameters[1]
+      github_repository_name = optional_parameters[2]
+    end
+  end
+
 
   util.execute_command('echo "# ' .. github_repository_name .. '" >> README.md')
   vim.cmd('G init')
