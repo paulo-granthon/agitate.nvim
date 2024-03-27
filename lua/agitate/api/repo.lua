@@ -14,7 +14,7 @@ function M.setup()
 
     repo_or_err.CreateGitHubCurl(opts.fargs)
   end, {
-    nargs = '?',
+    nargs = '*',
     desc = "Creates a new repository at 'github.com/<github_username>/<argument or current_directory>/'",
   })
 
@@ -26,7 +26,7 @@ function M.setup()
 
     repo_or_err.InitGitHub(opts.fargs)
   end, {
-    nargs = '?',
+    nargs = '*',
     desc = "Initialize the current directory as a repository at 'github.com/<github_username>/<argument or current_directory>/'",
   })
 end
