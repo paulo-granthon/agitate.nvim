@@ -56,11 +56,7 @@ function M.CreateGitHubCurl(optional_parameters)
     return vim.api.nvim_err_writeln(
       'Agitate | CreateGitHubCurl | Error:'
         .. '\nFailed to create repository at '
-        .. ' `https://github.com/'
-        .. github_username
-        .. '/'
-        .. new_github_repository_name
-        .. '/`'
+        .. util.build_github_html_url(github_username, new_github_repository_name)
         .. '\nReason: `'
         .. github_post_response.errors[1].message
         .. '`'
@@ -104,7 +100,7 @@ function M.InitGitHub(optional_parameters)
   vim.cmd('G add README.md')
   vim.cmd('G commit -m "' .. options.repo.init.first_commit_message .. '"')
   vim.cmd('G branch -M main')
-  vim.cmd('G remote add origin https://github.com/' .. github_username .. '/' .. github_repository_name .. '.git')
+  vim.cmd('G remote add origin' .. util.build_github_html_url(github_username, github_repository_name) .. '.git')
   vim.cmd('G push -u origin main')
 
   -- Open fugitive status window
