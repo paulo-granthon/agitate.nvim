@@ -69,8 +69,18 @@ end
 ---@see AgitateError
 function M.get_organization(access_token, org)
   -- Execute curl to get the organization information through the GitHub api
-  local raw_github_response =
-    util.execute_command('curl' .. ' -L' .. ' -H ' .. '"Authorization: token ' .. access_token .. '"' .. ' https://api.github.com/orgs/' .. org)
+  local raw_github_response = util.execute_command(
+    'curl'
+      .. ' -L'
+      .. ' -H '
+      .. '"Authorization: token '
+      .. access_token
+      .. '"'
+      .. ' -H'
+      .. '"Accept: application/vnd.github+json"'
+      .. ' https://api.github.com/orgs/'
+      .. org
+  )
 
   -- Flatten the table response to string
   local flattened_github_response = util.flatten_table(raw_github_response)
