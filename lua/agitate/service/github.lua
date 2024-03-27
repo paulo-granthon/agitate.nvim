@@ -59,7 +59,7 @@ end
 
 ---Get information about an organization on GitHub
 ---@param access_token string Your GitHub PAT (Personal Access Token)
----@param organization string Name of the organization to get information about
+---@param org string Name of the organization to get information about
 ---@return boolean Ok If proccess was executed successfully
 ---@return GitHubGetOrgSuccessResponse|GitHubErrorResponse|AgitateError Response
 ---Response properly formatted for the rest of `agitated.nvim`.
@@ -67,10 +67,10 @@ end
 ---@see GitHubGetOrgSuccessResponse
 ---@see GitHubErrorResponse
 ---@see AgitateError
-function M.get_organization(access_token, organization)
+function M.get_organization(access_token, org)
   -- Execute curl to get the organization information through the GitHub api
   local raw_github_response =
-    util.execute_command('curl' .. ' -H ' .. '"Authorization: token ' .. access_token .. '"' .. ' https://api.github.com/orgs/' .. organization)
+    util.execute_command('curl' .. ' -L' .. ' -H ' .. '"Authorization: token ' .. access_token .. '"' .. ' https://api.github.com/orgs/' .. org)
 
   -- Flatten the table response to string
   local flattened_github_response = util.flatten_table(raw_github_response)
