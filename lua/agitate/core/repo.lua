@@ -94,6 +94,9 @@ function M.InitGitHub(optional_parameters)
     end
   end
 
+  if not github_username or not github_repository_name then
+    return error('Agitate | InitGitHub | Error - Undefined GitHub Username or Repository Name')
+  end
 
   util.execute_command('echo "# ' .. github_repository_name .. '" >> README.md')
   vim.cmd('G init')
