@@ -33,10 +33,10 @@ function M.CreateGitHubCurl(optional_parameters)
 
   if optional_parameters then
     if #optional_parameters == 1 then
-      new_github_repository_name = optional_parameters[1]
+      new_github_repository_name = optional_parameters[1] or new_github_repository_name
     elseif #optional_parameters == 2 then
-      github_username = optional_parameters[1]
-      new_github_repository_name = optional_parameters[2]
+      github_username = optional_parameters[1] or github_username
+      new_github_repository_name = optional_parameters[2] or new_github_repository_name
     end
   end
 
@@ -91,10 +91,10 @@ function M.InitGitHub(optional_parameters)
 
   if optional_parameters then
     if #optional_parameters == 1 then
-      github_repository_name = optional_parameters[1]
+      github_repository_name = optional_parameters[1] or github_repository_name
     elseif #optional_parameters == 2 then
-      github_username = optional_parameters[1]
-      github_repository_name = optional_parameters[2]
+      github_username = optional_parameters[1] or github_username
+      github_repository_name = optional_parameters[2] or github_repository_name
     end
   end
 
