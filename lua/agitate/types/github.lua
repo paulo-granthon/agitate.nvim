@@ -1,4 +1,4 @@
----@class GitHubSuccessResponse
+---@class GitHubNewRepoSuccessResponse
 ---@field html_url string The URL of the repository
 
 ---@class GitHubErrorResponse
