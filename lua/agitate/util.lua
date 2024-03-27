@@ -48,4 +48,12 @@ function M.json_lr_trim(input_string)
   return false
 end
 
+---Builds a github html url from the provided username and repository name
+---@param username string The GitHub username or organization
+---@param repository_name string The name of the repository
+---@return string The GitHub repository html url
+function M.build_github_html_url(username, repository_name)
+  return '`https://github.com/' .. username .. '/' .. repository_name .. '/`'
+end
+
 return M
