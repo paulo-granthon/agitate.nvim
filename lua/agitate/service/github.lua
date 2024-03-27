@@ -27,15 +27,17 @@ local util = util_or_err
 ---@see GitHubNewRepoSuccessResponse
 ---@see GitHubErrorResponse
 ---@see AgitateError
-function M.post_new_repo(access_token, repository)
+function M.post_new_repo(access_token, repository, path)
   -- Execute curl to create the repository through the GitHub api
   local raw_github_response = util.execute_command(
     'curl'
       .. ' -H '
       .. '"Authorization: token '
       .. access_token
-      .. '"'
-      .. ' https://api.github.com/user/repos'
+      .. '" '
+      .. 'https://api.github.com/'
+      .. path
+      .. '/repos'
       .. ' -d '
       .. [['{"name":"]]
       .. repository

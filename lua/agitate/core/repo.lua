@@ -46,7 +46,15 @@ function M.CreateGitHubCurl(optional_parameters)
     return error('Agitate | CreateGitHubCurl | Error - Undefined GitHub Username or Access Token')
   end
 
-  local github_post_ok, github_post_response = github.post_new_repo(github_access_token, new_github_repository_name)
+  local path = 'user'
+
+  local is_org = github.get_organization(github_access_token, github_username) ~= nil
+
+  if is_org then
+    path = 'orgs/' .. github_username
+  end
+
+  local github_post_ok, github_post_response = github.post_new_repo(github_access_token, new_github_repository_name, path)
 
   if not github_post_ok then
     error.throw(github_post_response)
