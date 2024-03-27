@@ -17,12 +17,16 @@ end
 
 local util = util_or_err
 
----Creates a new remote repository through the GitHub API
+---Creates a new remote repository on GitHub
 ---@param access_token string Your GitHub PAT (Personal Access Token)
 ---@param repository string Name of the repository to be created
 ---@return boolean Ok If proccess was executed successfully
----Response properly formatted for the rest of `agitated.nvim`
 ---@return GitHubNewRepoSuccessResponse|GitHubErrorResponse|AgitateError Response
+---Response properly formatted for the rest of `agitated.nvim`.
+---Might contain the repo information relavant to the rest of Agitate or an error message
+---@see GitHubNewRepoSuccessResponse
+---@see GitHubErrorResponse
+---@see AgitateError
 function M.post_new_repo(access_token, repository)
   -- Execute curl to create the repository through the GitHub api
   local raw_github_response = util.execute_command(
