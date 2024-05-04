@@ -103,7 +103,21 @@ function M.get_organization(access_token, org)
   end
 
   -- Return the processed response as a lua table
-  return true, vim.json.decode(org_json)
+  local json_decoded = vim.json.decode(org_json)
+
+  if json_decoded == nil or json_decoded == '' then
+    return false, error.unhandled('service.github.get_organization')
+  end
+
+  if json_decoded.message then
+    if json_decoded.message == 'Not Found' then
+      return false, error.unhandled('service.github.get_organization')
+    end
+
+    return false, error.throw('service.github.get_organization -- Error:' .. json_decoded.message)
+  end
+
+  return true, json_decoded
 end
 
 return M
