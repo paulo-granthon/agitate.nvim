@@ -50,11 +50,22 @@ function M.post_new_repo(access_token, repository, path)
   -- Trim any noise left of the first `{` or right of the last `}`
   local json_lr_trim_ok, repo_json = util.json_lr_trim(flattened_github_response)
   if not json_lr_trim_ok then
+    vim.api.nvim_err_writeln('post_new_repo -- Error: Empty json response after trim: `' .. flattened_github_response .. '`')
+
     return json_lr_trim_ok, error.unhandled('service.github.post_new_repo')
   end
 
-  -- Return the processed response as a lua table
-  return true, vim.json.decode(repo_json)
+  local json_decoded = vim.json.decode(repo_json)
+
+  -- check if empty
+  if json_decoded == nil or json_decoded == '' then
+    vim.api.nvim_err_writeln('post_new_repo -- Error: Empty json response after decode: `' .. flattened_github_response .. '`')
+
+    return false, error.unhandled('service.github.post_new_repo')
+  else
+    -- Return the processed response as a lua table
+    return true, json_decoded
+  end
 end
 
 ---Get information about an organization on GitHub
