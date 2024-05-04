@@ -77,7 +77,7 @@ function M.CreateGitHubCurl(optional_parameters)
         .. '\nError during repository creation at '
         .. util.build_github_html_url(github_username, new_github_repository_name)
         .. '\nReason: `html_url` not found in response. Full response:'
-        .. github_post_response
+        .. util.flatten_table(github_post_response)
     )
   end
 

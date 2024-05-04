@@ -23,7 +23,7 @@ function M.flatten_table(table, opts)
     if skip > 0 then
       skip = skip - 1
     else
-      result = result .. line
+      result = result .. ' ' .. line
     end
   end
   return result
