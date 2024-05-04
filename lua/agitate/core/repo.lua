@@ -60,7 +60,7 @@ function M.CreateGitHubCurl(optional_parameters)
     error.throw(github_post_response)
   end
 
-  if github_post_response.errors then
+  if github_post_response.errors or not github_post_response.html_url then
     return vim.api.nvim_err_writeln(
       'Agitate | CreateGitHubCurl | Error:'
         .. '\nFailed to create repository at '
