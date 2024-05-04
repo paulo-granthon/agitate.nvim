@@ -125,7 +125,12 @@ Features planned for implementation
 - [ ] Repository functions:
 
   - [x] Initialize a local repository.
+    - [x] Allow initialization with explicit path parameter under the user profile 
+    - [x] Allow initialization of an Organization repository
+       
   - [x] Create a new remote repository on GitHub.
+    - [x] Allow repository creation with explicit path parameter under the user profile
+    - [x] Allow repository creation under Organization.
 
   - [ ] Add `.gitiginore` from github template
   - [ ] Add `LICENSE` from github template
