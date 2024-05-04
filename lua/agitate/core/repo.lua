@@ -48,7 +48,7 @@ function M.CreateGitHubCurl(optional_parameters)
 
   local path = 'user'
 
-  local is_org = github.get_organization(github_access_token, github_username) ~= nil
+  local is_org, _ = github.get_organization(github_access_token, github_username)
 
   if is_org then
     path = 'orgs/' .. github_username
