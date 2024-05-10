@@ -125,22 +125,24 @@ Features planned for implementation
 - [ ] Repository functions:
 
   - [x] Initialize a local repository.
-    - [x] Allow initialization with explicit path parameter under the user profile 
-    - [x] Allow initialization of an Organization repository
-       
-  - [x] Create a new remote repository on GitHub.
-    - [x] Allow repository creation with explicit path parameter under the user profile
-    - [x] Allow repository creation under Organization.
+    - [x] Initialize a repository with explicit name parameter
+    - [x] Initialize an Organization repository
 
-  - [ ] Add `.gitiginore` from github template
-  - [ ] Add `LICENSE` from github template
+  - [x] Create a new remote repository on GitHub.
+    - [x] Create repository with explicit name parameter
+    - [x] Create Organization repository.
+    - [ ] Create private repository
 
   - [ ] Add visibility function (change repo public / private)
 
-  - [ ] Add `FUNDING.yml` user pre-configured
+- [ ] File generation functions:
+  - [ ] Add `.gitiginore` from github template
+  - [ ] Add `LICENSE` from github template
+
+  - [ ] Add `FUNDING.yml`
   - [ ] Add `MAINTAINERS.md` (?)
 
-- [ ] Issue & PR:
+- [ ] Issues & PRs:
   - todo!()
 
 - [ ] Project functions:
