@@ -14,9 +14,11 @@ return function(flags, args)
         local flag = arg
         local value = args[i + 1] or nil
 
-        parsed_args[flag] = value
+        if value and value:sub(1, 1) ~= '-' then
+          parsed_args[flag] = value
 
-        skip[i + 1] = true
+          skip[i + 1] = true
+        end
       end
     end
     i = i + 1
