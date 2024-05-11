@@ -131,7 +131,7 @@ Features planned for implementation
   - [x] Create a new remote repository on GitHub.
     - [x] Create repository with explicit name parameter
     - [x] Create Organization repository.
-    - [ ] Create private repository
+    - [x] Create private repository
 
   - [ ] Add visibility function (change repo public / private)
 

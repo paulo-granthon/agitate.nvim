@@ -20,6 +20,7 @@ local util = util_or_err
 ---Creates a new remote repository on GitHub
 ---@param access_token string Your GitHub PAT (Personal Access Token)
 ---@param repository string Name of the repository to be created
+---@param is_private boolean Whether the repository should be private or public
 ---@return boolean Ok If proccess was executed successfully
 ---@return GitHubNewRepoSuccessResponse|GitHubErrorResponse|AgitateError Response
 ---Response properly formatted for the rest of `agitated.nvim`.
@@ -27,7 +28,12 @@ local util = util_or_err
 ---@see GitHubNewRepoSuccessResponse
 ---@see GitHubErrorResponse
 ---@see AgitateError
-function M.post_new_repo(access_token, repository, path)
+function M.post_new_repo(
+    access_token,
+    repository,
+    is_private,
+    path
+)
   -- Execute curl to create the repository through the GitHub api
   local raw_github_response = util.execute_command(
     'curl'
@@ -41,6 +47,8 @@ function M.post_new_repo(access_token, repository, path)
       .. ' -d '
       .. [['{"name":"]]
       .. repository
+      .. [[","private":]]
+      .. tostring(is_private)
       .. [["}']]
   )
 

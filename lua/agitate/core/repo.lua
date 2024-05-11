@@ -25,19 +25,23 @@ local parse_args = require('agitate.parse_args')
 ---with their corresponding flags:
 ---  -r: The name of the repository to create.
 ---  -u: The GitHub username or organization to create the repository under.
+---  -v: The visibility of the repository. Can be 'public' or 'private'.
 ---Defaults:
 ---  -u: GitHub username from config
 ---  -r: Current directory name
+---  -v: 'public'
 function M.CreateGitHubCurl(optional_parameters)
   local options = require('agitate.config').options
 
   local parameters, _ = parse_args({
     '-r',
     '-u',
+    '-v',
   }, optional_parameters)
 
   local new_github_repository_name = parameters['-r'] or util.get_directory_name()
   local github_username = parameters['-u'] or options.github_username
+  local is_private = parameters['-v'] == 'private'
 
   local github_access_token = options.github_access_token
 
@@ -50,13 +54,13 @@ function M.CreateGitHubCurl(optional_parameters)
   local is_org, _ = github.get_organization(github_access_token, github_username)
 
   if is_org then
-    print('Repository ' .. new_github_repository_name .. ' will be created under organization ' .. github_username)
+    print((is_private and 'Private r' or 'R') .. 'epository ' .. new_github_repository_name .. ' will be created under organization ' .. github_username)
     path = 'orgs/' .. github_username
   else
     print('Repository ' .. new_github_repository_name .. ' will be created under user ' .. github_username)
   end
 
-  local github_post_ok, github_post_response = github.post_new_repo(github_access_token, new_github_repository_name, path)
+  local github_post_ok, github_post_response = github.post_new_repo(github_access_token, new_github_repository_name, is_private, path)
 
   if not github_post_ok then
     error.throw(github_post_response)
