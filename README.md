@@ -29,7 +29,7 @@ You can easily verify what the commands are and what they do by looking at the
   Uses the repository name provided as an optional argument **_or_** the current
   directory as the repository name if no argument is provided.
 
-- `:AgitateRepoInitGitHub` - Initializes the current directory as a GitHub
+- `:AgitateRepoInit` - Initializes the current directory as a GitHub
   repository.  
   Uses the repository name provided as an optional argument **_or_** the current
   directory as the repository name if no argument is provided.
@@ -50,7 +50,7 @@ to bind them to a keybinding to be able to use `Agitate` with less friction.
 vimscript:
 
 ```vim
-nnoremap <leader>gil :AgitateRepoInitGitHub
+nnoremap <leader>gil :AgitateRepoInit
 nnoremap <leader>gir :AgitateRepoCreate
 nnoremap <leader>gbp :AgitateBranchCreateCheckoutAndPush
 ```
@@ -58,7 +58,7 @@ nnoremap <leader>gbp :AgitateBranchCreateCheckoutAndPush
 lua:
 
 ```lua
-vim.keymap.set('n', '<leader>gil', ':AgitateRepoInitGitHub ')
+vim.keymap.set('n', '<leader>gil', ':AgitateRepoInit ')
 vim.keymap.set('n', '<leader>gir', ':AgitateRepoCreate ')
 vim.keymap.set('n', '<leader>gbp', ':AgitateBranchCreateCheckoutAndPush ')
 ```
