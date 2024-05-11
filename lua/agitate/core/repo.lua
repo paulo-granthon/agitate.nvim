@@ -50,8 +50,10 @@ function M.CreateGitHubCurl(optional_parameters)
   local is_org, _ = github.get_organization(github_access_token, github_username)
 
   if is_org then
-    print('Repository will be created under organization ' .. github_username)
+    print('Repository ' .. new_github_repository_name .. ' will be created under organization ' .. github_username)
     path = 'orgs/' .. github_username
+  else
+    print('Repository ' .. new_github_repository_name .. ' will be created under user ' .. github_username)
   end
 
   local github_post_ok, github_post_response = github.post_new_repo(github_access_token, new_github_repository_name, path)
