@@ -1,9 +1,6 @@
 return {
   _all = {
-    coverage = false,
-    ROOT = {"tests"}
-  },
-  default = {
+    ROOT = {"tests"},
     verbose = true
   },
 }
