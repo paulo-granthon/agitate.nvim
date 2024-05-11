@@ -46,5 +46,11 @@ return function(flags, args)
     i = i + 1
   end
 
+  for _, flag in pairs(flags) do
+    if not parsed_args[flag] then
+      parsed_args[flag] = nil
+    end
+  end
+
   return parsed_args
 end
