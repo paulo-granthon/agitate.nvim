@@ -7,5 +7,5 @@
 ---@field init? RepositoryInitConfig Options for the local initialization of a repository
 
 ---@class RepositoryInitConfig
----@field show_status? boolean|nil Call `:G` after `:AgitateRepoInitGitHub`
+---@field show_status? boolean|nil Call `:G` after `:AgitateRepoInit`
 ---@field first_commit_message? string|nil The message to use for the first commit

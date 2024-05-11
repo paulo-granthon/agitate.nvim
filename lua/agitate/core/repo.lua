@@ -91,7 +91,7 @@ function M.Create(optional_parameters)
   print(
     'Created remote GitHub repository at '
       .. github_post_response.html_url
-      .. '\nYou can initialize the current directory to this remote origin with `:AgitateRepoInitGitHub '
+      .. '\nYou can initialize the current directory to this remote origin with `:AgitateRepoInit '
       .. repository_name
       .. '`'
   )
@@ -104,7 +104,7 @@ end
 ---    and the second is the name of the repository to create.
 ---
 --- Defaults: [1] GitHub username from config, [2] Current directory name.
-function M.InitGitHub(optional_parameters)
+function M.Init(optional_parameters)
   local options = require('agitate.config').options
 
   local github_repository_name = util.get_directory_name()
@@ -120,7 +120,7 @@ function M.InitGitHub(optional_parameters)
   end
 
   if not github_username or not github_repository_name then
-    return error('Agitate | InitGitHub | Error - Undefined GitHub Username or Repository Name')
+    return error('Agitate | Init | Error - Undefined GitHub Username or Repository Name')
   end
 
   util.execute_command('echo "# ' .. github_repository_name .. '" >> README.md')
