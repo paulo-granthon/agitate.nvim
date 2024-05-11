@@ -39,7 +39,7 @@ function M.CreateGitHubCurl(optional_parameters)
     '-v',
   }, optional_parameters)
 
-  local new_github_repository_name = parameters['-r'] or util.get_directory_name()
+  local repository_name = parameters['-r'] or util.get_directory_name()
   local github_username = parameters['-u'] or options.github_username
   local is_private = parameters['-v'] == 'private'
 
@@ -54,13 +54,13 @@ function M.CreateGitHubCurl(optional_parameters)
   local is_org, _ = github.get_organization(github_access_token, github_username)
 
   if is_org then
-    print((is_private and 'Private r' or 'R') .. 'epository ' .. new_github_repository_name .. ' will be created under organization ' .. github_username)
+    print((is_private and 'Private r' or 'R') .. 'epository ' .. repository_name .. ' will be created under organization ' .. github_username)
     path = 'orgs/' .. github_username
   else
-    print((is_private and 'Private r' or 'R') .. 'epository ' .. new_github_repository_name .. ' will be created under user ' .. github_username)
+    print((is_private and 'Private r' or 'R') .. 'epository ' .. repository_name .. ' will be created under user ' .. github_username)
   end
 
-  local github_post_ok, github_post_response = github.post_new_repo(github_access_token, new_github_repository_name, is_private, path)
+  local github_post_ok, github_post_response = github.post_new_repo(github_access_token, repository_name, is_private, path)
 
   if not github_post_ok then
     error.throw(github_post_response)
@@ -70,7 +70,7 @@ function M.CreateGitHubCurl(optional_parameters)
     return vim.api.nvim_err_writeln(
       'Agitate | CreateGitHubCurl | Error:'
         .. '\nFailed to create repository at '
-        .. util.build_github_html_url(github_username, new_github_repository_name)
+        .. util.build_github_html_url(github_username, repository_name)
         .. '\nReason: `'
         .. github_post_response.errors[1].message
         .. '`'
@@ -81,7 +81,7 @@ function M.CreateGitHubCurl(optional_parameters)
     return vim.api.nvim_err_writeln(
       'Agitate | CreateGitHubCurl | Error:'
         .. '\nError during repository creation at '
-        .. util.build_github_html_url(github_username, new_github_repository_name)
+        .. util.build_github_html_url(github_username, repository_name)
         .. '\nReason: `html_url` not found in response. Full response: `'
         .. util.flatten_table(github_post_response)
         .. '`'
@@ -92,7 +92,7 @@ function M.CreateGitHubCurl(optional_parameters)
     'Created remote GitHub repository at '
       .. github_post_response.html_url
       .. '\nYou can initialize the current directory to this remote origin with `:AgitateRepoInitGitHub '
-      .. new_github_repository_name
+      .. repository_name
       .. '`'
   )
 end
