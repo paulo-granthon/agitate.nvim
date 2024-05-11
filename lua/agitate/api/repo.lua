@@ -6,13 +6,13 @@ if not ok then
 end
 
 function M.setup()
-  vim.api.nvim_create_user_command('AgitateRepoCreateGitHub', function(opts)
+  vim.api.nvim_create_user_command('AgitateRepoCreate', function(opts)
     local repo_ok, repo_or_err = pcall(require, 'agitate.core.repo')
     if not repo_ok then
       return error.throw(repo_or_err)
     end
 
-    repo_or_err.CreateGitHubCurl(opts.fargs)
+    repo_or_err.Create(opts.fargs)
   end, {
     nargs = '*',
     desc = "Creates a new repository at 'github.com/<github_username>/<argument or current_directory>/'",
