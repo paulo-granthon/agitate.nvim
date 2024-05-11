@@ -12,7 +12,7 @@ Every agitate command starts with `:Agitate` and is followed by the
 context and the action. Example:
 
 ```vim
-:AgitateRepoCreateGitHub
+:AgitateRepoCreate
 ```
 
 ### Available contexts
@@ -25,7 +25,7 @@ You can easily verify what the commands are and what they do by looking at the
 
 #### Repo
 
-- `:AgitateRepoCreateGitHub` - Create a new remote repository on GitHub.  
+- `:AgitateRepoCreate` - Create a new remote repository on GitHub.  
   Uses the repository name provided as an optional argument **_or_** the current
   directory as the repository name if no argument is provided.
 
@@ -51,7 +51,7 @@ vimscript:
 
 ```vim
 nnoremap <leader>gil :AgitateRepoInitGitHub
-nnoremap <leader>gir :AgitateRepoCreateGitHub
+nnoremap <leader>gir :AgitateRepoCreate
 nnoremap <leader>gbp :AgitateBranchCreateCheckoutAndPush
 ```
 
@@ -59,7 +59,7 @@ lua:
 
 ```lua
 vim.keymap.set('n', '<leader>gil', ':AgitateRepoInitGitHub ')
-vim.keymap.set('n', '<leader>gir', ':AgitateRepoCreateGitHub ')
+vim.keymap.set('n', '<leader>gir', ':AgitateRepoCreate ')
 vim.keymap.set('n', '<leader>gbp', ':AgitateBranchCreateCheckoutAndPush ')
 ```
 

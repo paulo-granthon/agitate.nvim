@@ -30,7 +30,7 @@ local parse_args = require('agitate.parse_args')
 ---  -u: GitHub username from config
 ---  -r: Current directory name
 ---  -v: 'public'
-function M.CreateGitHubCurl(optional_parameters)
+function M.Create(optional_parameters)
   local options = require('agitate.config').options
 
   local parameters, _ = parse_args({
@@ -46,7 +46,7 @@ function M.CreateGitHubCurl(optional_parameters)
   local github_access_token = options.github_access_token
 
   if not github_username or not github_access_token then
-    return error('Agitate | CreateGitHubCurl | Error - Undefined GitHub Username or Access Token')
+    return error('Agitate | core.repo.Create | Error - Undefined GitHub Username or Access Token')
   end
 
   local path = 'user'
@@ -68,7 +68,7 @@ function M.CreateGitHubCurl(optional_parameters)
 
   if github_post_response.errors then
     return vim.api.nvim_err_writeln(
-      'Agitate | CreateGitHubCurl | Error:'
+      'Agitate | core.repo.Create | Error:'
         .. '\nFailed to create repository at '
         .. util.build_github_html_url(github_username, repository_name)
         .. '\nReason: `'
@@ -79,7 +79,7 @@ function M.CreateGitHubCurl(optional_parameters)
 
   if not github_post_response.html_url then
     return vim.api.nvim_err_writeln(
-      'Agitate | CreateGitHubCurl | Error:'
+      'Agitate | core.repo.Create | Error:'
         .. '\nError during repository creation at '
         .. util.build_github_html_url(github_username, repository_name)
         .. '\nReason: `html_url` not found in response. Full response: `'
