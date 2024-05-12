@@ -60,7 +60,7 @@ function M.Create(optional_parameters)
     print((is_private and 'Private r' or 'R') .. 'epository ' .. repository_name .. ' will be created under user ' .. github_username)
   end
 
-  local github_post_ok, github_post_response = github.post_new_repo(github_access_token, repository_name, is_private, path)
+  local github_post_ok, github_post_response = github.post_new_repo_v2(github_access_token, repository_name, is_private, path)
 
   if not github_post_ok then
     error.throw(github_post_response)
