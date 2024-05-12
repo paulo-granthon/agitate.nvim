@@ -28,12 +28,7 @@ local util = util_or_err
 ---@see GitHubNewRepoSuccessResponse
 ---@see GitHubErrorResponse
 ---@see AgitateError
-function M.post_new_repo(
-    access_token,
-    repository,
-    is_private,
-    path
-)
+function M.post_new_repo(access_token, repository, is_private, path)
   -- Execute curl to create the repository through the GitHub api
   local raw_github_response = util.execute_command(
     'curl'
@@ -74,6 +69,35 @@ function M.post_new_repo(
     -- Return the processed response as a lua table
     return true, json_decoded
   end
+end
+
+function M.post_new_repo_v2(access_token, repository, is_private, path)
+  local http = require('socket.http')
+  local ltn12 = require('ltn12')
+  local json = require('cjson')
+
+  local response_body = {}
+  local _, response_code = http.request({
+    url = 'https://api.github.com/' .. path .. '/repos',
+    method = 'POST',
+    headers = {
+      ['Authorization'] = 'token ' .. access_token,
+      ['Content-Type'] = 'application/json',
+    },
+    source = ltn12.source.string(json.encode({
+      name = repository,
+      private = is_private,
+    })),
+    sink = ltn12.sink.table(response_body),
+  })
+
+  local response_body_json = json.decode(table.concat(response_body))
+
+  if response_code ~= 201 then
+    return false, response_body_json
+  end
+
+  return true, response_body_json
 end
 
 ---Get information about an organization on GitHub
