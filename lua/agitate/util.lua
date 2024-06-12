@@ -53,7 +53,7 @@ end
 ---@param repository_name string The name of the repository
 ---@return string The GitHub repository html url
 function M.build_github_html_url(username, repository_name)
-  return '`https://github.com/' .. username .. '/' .. repository_name .. '/`'
+  return 'https://github.com/' .. username .. '/' .. repository_name
 end
 
 return M
