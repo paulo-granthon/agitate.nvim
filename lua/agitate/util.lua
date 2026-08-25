@@ -13,20 +13,19 @@ end
 ---@class FlattenTableOptions
 ---@field skip? number The number of lines to skip before constructing the table
 
----Flattens a table of String into a single String
----@param table table the table to flatten
+---Flattens a table of strings into a single space separated string
+---@param lines table the table to flatten
 ---@param opts? FlattenTableOptions the optional options table
-function M.flatten_table(table, opts)
-  local result = ''
+---@return string Flattened The joined lines
+function M.flatten_table(lines, opts)
   local skip = opts and opts.skip or 0
-  for _, line in ipairs(table) do
-    if skip > 0 then
-      skip = skip - 1
-    else
-      result = result .. ' ' .. line
-    end
+  local parts = {}
+
+  for index = skip + 1, #lines do
+    parts[#parts + 1] = lines[index]
   end
-  return result
+
+  return table.concat(parts, ' ')
 end
 
 ---Removes any characters outside of the `json` object in the provided string
@@ -45,7 +44,7 @@ function M.json_lr_trim(input_string)
   end
 
   -- no `json` found
-  return false
+  return false, nil
 end
 
 ---Builds a github html url from the provided username and repository name
