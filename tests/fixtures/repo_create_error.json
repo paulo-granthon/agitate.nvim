@@ -1,0 +1,12 @@
+{
+    "message": "Repository creation failed.",
+    "errors": [
+        {
+            "resource": "Repository",
+            "code": "custom",
+            "field": "name",
+            "message": "name is reserved"
+        }
+    ],
+    "documentation_url": "https://docs.github.com/rest/repos/repos#create-a-repository-for-the-authenticated-user"
+}
