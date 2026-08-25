@@ -111,3 +111,83 @@ describe('ui.list', function()
     end)
   end)
 end)
+
+describe('ui.document', function()
+  local document = require('agitate.ui.document')
+
+  describe('render', function()
+    local entry = {
+      number = 42,
+      title = 'Fix the thing',
+      state = 'open',
+      user = { login = 'octocat' },
+      body = 'It is broken.',
+      html_url = 'https://github.com/acme/thing/issues/42',
+    }
+
+    it('leads with the number and title', function()
+      assert.are.equal('# #42 Fix the thing', document.render(entry)[1])
+    end)
+
+    it('includes the state, author and url', function()
+      local text = table.concat(document.render(entry), '\n')
+
+      assert.is_truthy(text:find('State: open', 1, true))
+      assert.is_truthy(text:find('Author: octocat', 1, true))
+      assert.is_truthy(text:find('https://github.com/acme/thing/issues/42', 1, true))
+    end)
+
+    it('includes the body', function()
+      assert.is_truthy(table.concat(document.render(entry), '\n'):find('It is broken.', 1, true))
+    end)
+
+    -- GitHub returns nil from some endpoints and an empty string from others
+    -- for the same thing: an author who wrote no description.
+    it('says so when there is no body', function()
+      for _, body in ipairs({ '', '   ' }) do
+        local copy = vim.tbl_extend('force', entry, { body = body })
+
+        assert.is_truthy(table.concat(document.render(copy), '\n'):find('No description provided', 1, true))
+      end
+
+      local without = vim.tbl_extend('force', entry, {})
+      without.body = nil
+
+      assert.is_truthy(table.concat(document.render(without), '\n'):find('No description provided', 1, true))
+    end)
+
+    it('renders each comment under its author', function()
+      local text = table.concat(
+        document.render(entry, {
+          { user = { login = 'alice' }, body = 'First.' },
+          { user = { login = 'bob' }, body = 'Second.' },
+        }),
+        '\n'
+      )
+
+      assert.is_truthy(text:find('## alice', 1, true))
+      assert.is_truthy(text:find('First.', 1, true))
+      assert.is_truthy(text:find('## bob', 1, true))
+      assert.is_truthy(text:find('Second.', 1, true))
+    end)
+
+    it('appends the extra header lines', function()
+      assert.is_truthy(table.concat(document.render(entry, nil, { '- Base: main' }), '\n'):find('- Base: main', 1, true))
+    end)
+
+    it('tolerates missing fields', function()
+      local lines = document.render({ number = 1 })
+
+      assert.is_truthy(lines[1]:find('#1', 1, true))
+      assert.is_truthy(table.concat(lines, '\n'):find('unknown', 1, true))
+    end)
+
+    it('keeps a multi line body as separate lines', function()
+      local copy = vim.tbl_extend('force', entry, { body = 'one\ntwo' })
+      local lines = document.render(copy)
+
+      assert.is_truthy(vim.tbl_contains(lines, 'one'))
+      assert.is_truthy(vim.tbl_contains(lines, 'two'))
+    end)
+  end)
+end)
