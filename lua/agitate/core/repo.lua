@@ -63,7 +63,7 @@ function M.Create(optional_parameters)
   local github_post_ok, github_post_response = github.post_new_repo(github_access_token, repository_name, is_private, path)
 
   if not github_post_ok then
-    agitate_error.throw(github_post_response)
+    return agitate_error.throw(github_post_response)
   end
 
   if github_post_response.errors then
