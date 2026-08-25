@@ -146,7 +146,10 @@ Features planned for implementation
   - todo!()
 
 - [ ] Project functions:
-  - todo!()
+  - Blocked. The classic Projects REST API has been sunset and Projects V2 is
+    reachable only through GraphQL, so this needs a GraphQL client alongside
+    the REST one and a token carrying the `project` scope. Worth revisiting
+    once the REST backed features have landed.
 
 ## Contributing
 
