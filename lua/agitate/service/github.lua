@@ -44,7 +44,7 @@ function M.post_new_repo(access_token, repository, is_private, path)
       .. repository
       .. [[","private":]]
       .. tostring(is_private)
-      .. [["}']]
+      .. [[}']]
   )
 
   -- Flatten the table response to string
