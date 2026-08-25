@@ -151,4 +151,31 @@ function M.create_repository(access_token, options, callback)
   )
 end
 
+---Fetches a repository, which is how the default branch is discovered.
+---@param access_token string
+---@param owner string
+---@param repository string
+---@param callback fun(ok: boolean, result: table|AgitateError)
+function M.get_repository(access_token, owner, repository, callback)
+  M.get(access_token, 'repos/' .. owner .. '/' .. repository, 'read `' .. owner .. '/' .. repository .. '`', callback)
+end
+
+---Adds a comment to an issue or a pull request.
+---
+---GitHub models a pull request as an issue for commenting, so both go through
+---this one endpoint and neither needs its own.
+---@param access_token string
+---@param owner string
+---@param repository string
+---@param number number The issue or pull request number
+---@param body string The comment text
+---@param callback fun(ok: boolean, result: table|AgitateError)
+function M.create_comment(access_token, owner, repository, number, body, callback)
+  M.call(access_token, {
+    path = 'repos/' .. owner .. '/' .. repository .. '/issues/' .. number .. '/comments',
+    method = 'POST',
+    body = { body = body },
+  }, 'comment on `' .. owner .. '/' .. repository .. '#' .. number .. '`', 201, callback)
+end
+
 return M

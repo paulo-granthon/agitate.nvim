@@ -55,4 +55,10 @@ function M.build_github_html_url(username, repository_name)
   return 'https://github.com/' .. username .. '/' .. repository_name
 end
 
+---Opens a URL in the user's browser.
+---@param url string
+function M.open_url(url)
+  vim.ui.open(url)
+end
+
 return M
