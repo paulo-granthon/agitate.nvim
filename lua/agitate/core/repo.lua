@@ -100,30 +100,34 @@ function M.Create(optional_parameters)
   )
 end
 
----Initialize a new repository and push to GitHub
----@param optional_parameters? table<string> The value at each index depends on the number of parameters passed:
---- 1 optional_parameter: The name of the repository to create.
---- 2 optional_parameters: The first value is the GitHub username or organization
----    and the second is the name of the repository to create.
----
---- Defaults: [1] GitHub username from config, [2] Current directory name.
+---Initialize the current directory as a repository and push it to GitHub
+---@param optional_parameters? table<string> Parameters can be passed in order or explicitly
+---with their corresponding flags:
+---  -r: The name of the repository. Defaults to the current directory name.
+---  -u: The GitHub username or organization. Defaults to the configured username.
 function M.Init(optional_parameters)
   local options = require('agitate.config').options
 
-  local github_repository_name = util.get_directory_name()
-  local github_username = options.github_username
+  local parameters, leftover = parse_args({
+    '-r',
+    '-u',
+  }, optional_parameters)
 
-  if optional_parameters then
-    if #optional_parameters == 1 then
-      github_repository_name = optional_parameters[1] or github_repository_name
-    elseif #optional_parameters == 2 then
-      github_username = optional_parameters[1] or github_username
-      github_repository_name = optional_parameters[2] or github_repository_name
-    end
+  if #leftover > 0 then
+    return agitate_error.throw('core.repo.Init -- Error: unrecognised arguments: ' .. table.concat(leftover, ' '))
   end
+
+  local github_repository_name = parameters['-r'] or util.get_directory_name()
+  local github_username = parameters['-u'] or options.github_username
 
   if not github_username or not github_repository_name then
     return agitate_error.throw('core.repo.Init -- Error: undefined GitHub username or repository name')
+  end
+
+  local protocol = options.repo.init.remote_protocol
+
+  if protocol ~= 'https' and protocol ~= 'ssh' then
+    return agitate_error.throw('core.repo.Init -- Error: `repo.init.remote_protocol` expects `https` or `ssh`, got `' .. tostring(protocol) .. '`')
   end
 
   util.execute_command('echo "# ' .. github_repository_name .. '" >> README.md')
@@ -131,7 +135,7 @@ function M.Init(optional_parameters)
   vim.cmd('G add README.md')
   vim.cmd('G commit -m "' .. options.repo.init.first_commit_message .. '"')
   vim.cmd('G branch -M main')
-  vim.cmd('G remote add origin ' .. util.build_github_html_url(github_username, github_repository_name) .. '.git')
+  vim.cmd('G remote add origin ' .. util.build_github_remote_url(github_username, github_repository_name, protocol))
   vim.cmd('G push -u origin main')
 
   -- Open fugitive status window

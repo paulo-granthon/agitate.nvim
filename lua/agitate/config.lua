@@ -18,6 +18,7 @@ local defaults = {
     init = {
       show_status = false,
       first_commit_message = 'first commit',
+      remote_protocol = 'https',
     },
   },
 }

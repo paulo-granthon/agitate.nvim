@@ -43,6 +43,26 @@ describe('util', function()
     end)
   end)
 
+  describe('build_github_remote_url', function()
+    it('builds an https remote by default', function()
+      assert.are.equal('https://github.com/octocat/hello.git', util.build_github_remote_url('octocat', 'hello'))
+    end)
+
+    it('builds an https remote when asked explicitly', function()
+      assert.are.equal('https://github.com/octocat/hello.git', util.build_github_remote_url('octocat', 'hello', 'https'))
+    end)
+
+    it('builds the scp style form for ssh', function()
+      assert.are.equal('git@github.com:octocat/hello.git', util.build_github_remote_url('octocat', 'hello', 'ssh'))
+    end)
+
+    it('always ends in .git', function()
+      for _, protocol in ipairs({ 'https', 'ssh' }) do
+        assert.is_truthy(util.build_github_remote_url('octocat', 'hello', protocol):find('%.git$'))
+      end
+    end)
+  end)
+
   describe('build_github_html_url', function()
     it('builds a url with no trailing slash', function()
       assert.are.equal('https://github.com/octocat/hello', util.build_github_html_url('octocat', 'hello'))
