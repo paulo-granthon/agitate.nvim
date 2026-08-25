@@ -1,18 +1,18 @@
 local M = {}
 
-local ok, error = pcall(require, 'agitate.error')
+local ok, agitate_error = pcall(require, 'agitate.error')
 if not ok then
   return vim.api.nvim_err_writeln(require('agitate.const.error').import)
 end
 
 local util_ok, util_or_err = pcall(require, 'agitate.util')
 if not util_ok then
-  return error.throw(util_or_err)
+  return agitate_error.throw(util_or_err)
 end
 
 local types_ok, types_or_err = pcall(require, 'agitate.types.github')
 if not types_ok then
-  return error.throw(types_or_err)
+  return agitate_error.throw(types_or_err)
 end
 
 local util = util_or_err
@@ -55,7 +55,7 @@ function M.post_new_repo(access_token, repository, is_private, path)
   if not json_lr_trim_ok then
     vim.api.nvim_err_writeln('post_new_repo -- Error: Empty json response after trim: `' .. flattened_github_response .. '`')
 
-    return json_lr_trim_ok, error.unhandled('service.github.post_new_repo')
+    return json_lr_trim_ok, agitate_error.unhandled('service.github.post_new_repo')
   end
 
   local json_decoded = vim.json.decode(repo_json)
@@ -64,7 +64,7 @@ function M.post_new_repo(access_token, repository, is_private, path)
   if json_decoded == nil or json_decoded == '' then
     vim.api.nvim_err_writeln('post_new_repo -- Error: Empty json response after decode: `' .. flattened_github_response .. '`')
 
-    return false, error.unhandled('service.github.post_new_repo')
+    return false, agitate_error.unhandled('service.github.post_new_repo')
   else
     -- Return the processed response as a lua table
     return true, json_decoded
@@ -102,22 +102,22 @@ function M.get_organization(access_token, org)
   -- Trim any noise left of the first `{` or right of the last `}`
   local json_lr_trim_ok, org_json = util.json_lr_trim(flattened_github_response)
   if not json_lr_trim_ok then
-    return json_lr_trim_ok, error.unhandled('service.github.get_organization')
+    return json_lr_trim_ok, agitate_error.unhandled('service.github.get_organization')
   end
 
   -- Return the processed response as a lua table
   local json_decoded = vim.json.decode(org_json)
 
   if json_decoded == nil or json_decoded == '' then
-    return false, error.unhandled('service.github.get_organization')
+    return false, agitate_error.unhandled('service.github.get_organization')
   end
 
   if json_decoded.message then
     if json_decoded.message == 'Not Found' then
-      return false, error.unhandled('service.github.get_organization')
+      return false, agitate_error.unhandled('service.github.get_organization')
     end
 
-    return false, error.throw('service.github.get_organization -- Error:' .. json_decoded.message)
+    return false, agitate_error.throw('service.github.get_organization -- Error:' .. json_decoded.message)
   end
 
   return true, json_decoded

@@ -1,13 +1,13 @@
 local M = {}
 
-local ok, error = pcall(require, 'agitate.error')
+local ok, agitate_error = pcall(require, 'agitate.error')
 if not ok then
   return vim.api.nvim_err_writeln(require('agitate.const.error').import)
 end
 
 local types_ok, types_or_err = pcall(require, 'agitate.types.config')
 if not types_ok then
-  return error.throw(types_or_err)
+  return agitate_error.throw(types_or_err)
 end
 
 ---@type Config
@@ -33,7 +33,7 @@ function M.setup(options)
   if api_ok then
     api_or_err.setup()
   else
-    error.throw(api_or_err)
+    agitate_error.throw(api_or_err)
   end
 end
 

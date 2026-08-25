@@ -1,18 +1,18 @@
 local M = {}
 
-local ok, error = pcall(require, 'agitate.error')
+local ok, agitate_error = pcall(require, 'agitate.error')
 if not ok then
   return vim.api.nvim_err_writeln(require('agitate.const.error').import)
 end
 
 local util_ok, util_or_err = pcall(require, 'agitate.util')
 if not util_ok then
-  return error.throw(util_or_err)
+  return agitate_error.throw(util_or_err)
 end
 
 local github_ok, github_or_err = pcall(require, 'agitate.service.github')
 if not github_ok then
-  return error.throw(github_or_err)
+  return agitate_error.throw(github_or_err)
 end
 
 local util = util_or_err
@@ -46,7 +46,7 @@ function M.Create(optional_parameters)
   local github_access_token = options.github_access_token
 
   if not github_username or not github_access_token then
-    return error('Agitate | core.repo.Create | Error - Undefined GitHub Username or Access Token')
+    return agitate_error.throw('core.repo.Create -- Error: undefined GitHub username or access token')
   end
 
   local path = 'user'
@@ -63,7 +63,7 @@ function M.Create(optional_parameters)
   local github_post_ok, github_post_response = github.post_new_repo(github_access_token, repository_name, is_private, path)
 
   if not github_post_ok then
-    error.throw(github_post_response)
+    agitate_error.throw(github_post_response)
   end
 
   if github_post_response.errors then
@@ -120,7 +120,7 @@ function M.Init(optional_parameters)
   end
 
   if not github_username or not github_repository_name then
-    return error('Agitate | Init | Error - Undefined GitHub Username or Repository Name')
+    return agitate_error.throw('core.repo.Init -- Error: undefined GitHub username or repository name')
   end
 
   util.execute_command('echo "# ' .. github_repository_name .. '" >> README.md')
