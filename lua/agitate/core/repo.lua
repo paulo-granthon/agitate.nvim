@@ -128,7 +128,7 @@ function M.Init(optional_parameters)
   vim.cmd('G add README.md')
   vim.cmd('G commit -m "' .. options.repo.init.first_commit_message .. '"')
   vim.cmd('G branch -M main')
-  vim.cmd('G remote add origin' .. util.build_github_html_url(github_username, github_repository_name) .. '.git')
+  vim.cmd('G remote add origin ' .. util.build_github_html_url(github_username, github_repository_name) .. '.git')
   vim.cmd('G push -u origin main')
 
   -- Open fugitive status window
