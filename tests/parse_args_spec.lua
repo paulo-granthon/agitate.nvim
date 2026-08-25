@@ -1,5 +1,5 @@
 describe('parse_args', function()
-  local parse_args = require('lua.agitate.parse_args')
+  local parse_args = require('agitate.parse_args')
 
   it('should parse args', function()
     local flags = { '-a', '-b', '-c' }

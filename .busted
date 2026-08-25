@@ -1,6 +1,7 @@
 return {
   _all = {
-    ROOT = {"tests"},
-    verbose = true
+    ROOT = { 'tests' },
+    lpath = 'lua/?.lua;lua/?/init.lua',
+    verbose = true,
   },
 }
