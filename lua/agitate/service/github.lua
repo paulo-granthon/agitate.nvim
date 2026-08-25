@@ -5,9 +5,9 @@ if not ok then
   return vim.notify(require('agitate.const.error').import, vim.log.levels.ERROR)
 end
 
-local util_ok, util_or_err = pcall(require, 'agitate.util')
-if not util_ok then
-  return agitate_error.throw(util_or_err)
+local http_ok, http_or_err = pcall(require, 'agitate.service.http')
+if not http_ok then
+  return agitate_error.throw(http_or_err)
 end
 
 local types_ok, types_or_err = pcall(require, 'agitate.types.github')
@@ -15,112 +15,96 @@ if not types_ok then
   return agitate_error.throw(types_or_err)
 end
 
-local util = util_or_err
+local http = http_or_err
 
----Creates a new remote repository on GitHub
----@param access_token string Your GitHub PAT (Personal Access Token)
----@param repository string Name of the repository to be created
----@param is_private boolean Whether the repository should be private or public
----@return boolean Ok If proccess was executed successfully
----@return GitHubNewRepoSuccessResponse|GitHubErrorResponse|AgitateError Response
----Response properly formatted for the rest of `agitated.nvim`.
----Might contain the repo information relavant to the rest of Agitate or an error message
----@see GitHubNewRepoSuccessResponse
----@see GitHubErrorResponse
----@see AgitateError
-function M.post_new_repo(access_token, repository, is_private, path)
-  -- Execute curl to create the repository through the GitHub api
-  local raw_github_response = util.execute_command(
-    'curl'
-      .. ' -H '
-      .. '"Authorization: token '
-      .. access_token
-      .. '" '
-      .. 'https://api.github.com/'
-      .. path
-      .. '/repos'
-      .. ' -d '
-      .. [['{"name":"]]
-      .. repository
-      .. [[","private":]]
-      .. tostring(is_private)
-      .. [[}']]
-  )
+---Builds a readable message from a GitHub error response.
+---
+---GitHub reports a failure in two layers: a top level `message` describing
+---what went wrong, and an optional `errors` array explaining which field
+---caused it. The second layer carries the part a user can act on, such as
+---`name already exists on this account`, so both are surfaced.
+---@param action string What was being attempted, phrased to follow "could not"
+---@param response HttpResponse The response that failed
+---@return string
+function M.describe_failure(action, response)
+  local body = response.body or {}
+  local reasons = {}
 
-  -- Flatten the table response to string
-  local flattened_github_response = util.flatten_table(raw_github_response)
-
-  -- Trim any noise left of the first `{` or right of the last `}`
-  local json_lr_trim_ok, repo_json = util.json_lr_trim(flattened_github_response)
-  if not json_lr_trim_ok then
-    vim.notify('post_new_repo -- Error: Empty json response after trim: `' .. flattened_github_response .. '`', vim.log.levels.ERROR)
-
-    return json_lr_trim_ok, agitate_error.unhandled('service.github.post_new_repo')
+  if body.message then
+    reasons[#reasons + 1] = body.message
   end
 
-  local json_decoded = vim.json.decode(repo_json)
-
-  -- check if empty
-  if json_decoded == nil or json_decoded == '' then
-    vim.notify('post_new_repo -- Error: Empty json response after decode: `' .. flattened_github_response .. '`', vim.log.levels.ERROR)
-
-    return false, agitate_error.unhandled('service.github.post_new_repo')
-  else
-    -- Return the processed response as a lua table
-    return true, json_decoded
+  for _, err in ipairs(body.errors or {}) do
+    reasons[#reasons + 1] = err.message or vim.inspect(err)
   end
+
+  if #reasons == 0 then
+    reasons[#reasons + 1] = response.raw ~= '' and response.raw or 'GitHub gave no reason.'
+  end
+
+  return 'GitHub could not ' .. action .. '.\nHTTP ' .. response.status .. ': ' .. table.concat(reasons, '\n')
 end
 
----Get information about an organization on GitHub
----@param access_token string Your GitHub PAT (Personal Access Token)
----@param org string Name of the organization to get information about
----@return boolean Ok If proccess was executed successfully
----@return GitHubGetOrgSuccessResponse|GitHubErrorResponse|AgitateError Response
----Response properly formatted for the rest of `agitated.nvim`.
----Might contain the organization information relavant to the rest of Agitate or an error message
----@see GitHubGetOrgSuccessResponse
----@see GitHubErrorResponse
----@see AgitateError
-function M.get_organization(access_token, org)
-  -- Execute curl to get the organization information through the GitHub api
-  local raw_github_response = util.execute_command(
-    'curl'
-      .. ' -L'
-      .. ' -H '
-      .. '"Authorization: token '
-      .. access_token
-      .. '"'
-      .. ' -H'
-      .. '"Accept: application/vnd.github+json"'
-      .. ' https://api.github.com/orgs/'
-      .. org
-  )
-
-  -- Flatten the table response to string
-  local flattened_github_response = util.flatten_table(raw_github_response)
-
-  -- Trim any noise left of the first `{` or right of the last `}`
-  local json_lr_trim_ok, org_json = util.json_lr_trim(flattened_github_response)
-  if not json_lr_trim_ok then
-    return json_lr_trim_ok, agitate_error.unhandled('service.github.get_organization')
-  end
-
-  -- Return the processed response as a lua table
-  local json_decoded = vim.json.decode(org_json)
-
-  if json_decoded == nil or json_decoded == '' then
-    return false, agitate_error.unhandled('service.github.get_organization')
-  end
-
-  if json_decoded.message then
-    if json_decoded.message == 'Not Found' then
-      return false, agitate_error.unhandled('service.github.get_organization')
+---Determines whether a name belongs to an organization rather than a user.
+---
+---A 404 is the ordinary answer for a personal account, not a failure, so it
+---resolves to `false` rather than an error. Anything else, an expired token
+---or a rate limit for instance, is reported, because silently treating it as
+---"not an organization" would create the repository in the wrong place.
+---@param access_token string Your GitHub PAT
+---@param name string The user or organization name to test
+---@param callback fun(ok: boolean, result: boolean|AgitateError) Completion handler
+function M.is_organization(access_token, name, callback)
+  http.request({
+    url = http.github_url('orgs/' .. name),
+    token = access_token,
+  }, function(request_ok, response)
+    if not request_ok then
+      return callback(false, response)
     end
 
-    return false, agitate_error.throw('service.github.get_organization -- Error:' .. json_decoded.message)
-  end
+    if response.status == 200 then
+      return callback(true, true)
+    end
 
-  return true, json_decoded
+    if response.status == 404 then
+      return callback(true, false)
+    end
+
+    callback(false, { message = M.describe_failure('look up `' .. name .. '`', response) })
+  end)
+end
+
+---Creates a new remote repository on GitHub.
+---@param access_token string Your GitHub PAT
+---@param options CreateRepositoryOptions Where and what to create
+---@param callback fun(ok: boolean, result: GitHubNewRepoSuccessResponse|AgitateError) Completion handler
+function M.create_repository(access_token, options, callback)
+  http.request({
+    url = http.github_url(options.path .. '/repos'),
+    method = 'POST',
+    token = access_token,
+    body = {
+      name = options.name,
+      private = options.is_private,
+    },
+  }, function(request_ok, response)
+    if not request_ok then
+      return callback(false, response)
+    end
+
+    if response.status ~= 201 then
+      return callback(false, { message = M.describe_failure('create the repository `' .. options.name .. '`', response) })
+    end
+
+    if not response.body or not response.body.html_url then
+      return callback(false, {
+        message = 'service.github.create_repository -- Error: GitHub reported success but returned no `html_url`.\nRaw response: ' .. response.raw,
+      })
+    end
+
+    callback(true, response.body)
+  end)
 end
 
 return M

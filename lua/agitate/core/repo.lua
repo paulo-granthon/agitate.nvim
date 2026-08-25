@@ -33,15 +33,25 @@ local parse_args = require('agitate.parse_args')
 function M.Create(optional_parameters)
   local options = require('agitate.config').options
 
-  local parameters, _ = parse_args({
+  local parameters, leftover = parse_args({
     '-r',
     '-u',
     '-v',
   }, optional_parameters)
 
+  if #leftover > 0 then
+    return agitate_error.throw('core.repo.Create -- Error: unrecognised arguments: ' .. table.concat(leftover, ' '))
+  end
+
+  local visibility = parameters['-v']
+
+  if visibility and visibility ~= 'public' and visibility ~= 'private' then
+    return agitate_error.throw('core.repo.Create -- Error: `-v` expects `public` or `private`, got `' .. visibility .. '`')
+  end
+
   local repository_name = parameters['-r'] or util.get_directory_name()
   local github_username = parameters['-u'] or options.github_username
-  local is_private = parameters['-v'] == 'private'
+  local is_private = visibility == 'private'
 
   local github_access_token = options.github_access_token
 
@@ -49,55 +59,40 @@ function M.Create(optional_parameters)
     return agitate_error.throw('core.repo.Create -- Error: undefined GitHub username or access token')
   end
 
-  local path = 'user'
+  github.is_organization(github_access_token, github_username, function(lookup_ok, is_org)
+    if not lookup_ok then
+      return agitate_error.throw(is_org)
+    end
 
-  local is_org, _ = github.get_organization(github_access_token, github_username)
-
-  if is_org then
     vim.notify(
-      (is_private and 'Private r' or 'R') .. 'epository ' .. repository_name .. ' will be created under organization ' .. github_username,
+      (is_private and 'Private r' or 'R')
+        .. 'epository '
+        .. repository_name
+        .. ' will be created under '
+        .. (is_org and 'organization ' or 'user ')
+        .. github_username,
       vim.log.levels.INFO
     )
-    path = 'orgs/' .. github_username
-  else
-    vim.notify((is_private and 'Private r' or 'R') .. 'epository ' .. repository_name .. ' will be created under user ' .. github_username, vim.log.levels.INFO)
-  end
 
-  local github_post_ok, github_post_response = github.post_new_repo(github_access_token, repository_name, is_private, path)
+    github.create_repository(github_access_token, {
+      name = repository_name,
+      is_private = is_private,
+      path = is_org and ('orgs/' .. github_username) or 'user',
+    }, function(created_ok, repository)
+      if not created_ok then
+        return agitate_error.throw(repository)
+      end
 
-  if not github_post_ok then
-    return agitate_error.throw(github_post_response)
-  end
-
-  if github_post_response.errors then
-    local first_error = github_post_response.errors[1]
-
-    return agitate_error.throw(
-      'core.repo.Create -- Error: failed to create repository at '
-        .. util.build_github_html_url(github_username, repository_name)
-        .. '\nReason: '
-        .. ((first_error and first_error.message) or vim.inspect(github_post_response.errors))
-    )
-  end
-
-  if not github_post_response.html_url then
-    return agitate_error.throw(
-      'core.repo.Create -- Error: repository creation at '
-        .. util.build_github_html_url(github_username, repository_name)
-        .. ' returned no `html_url`.'
-        .. '\nFull response: '
-        .. vim.inspect(github_post_response)
-    )
-  end
-
-  vim.notify(
-    'Created remote GitHub repository at '
-      .. github_post_response.html_url
-      .. '\nYou can initialize the current directory to this remote origin with `:AgitateRepoInit '
-      .. repository_name
-      .. '`',
-    vim.log.levels.INFO
-  )
+      vim.notify(
+        'Created remote GitHub repository at '
+          .. repository.html_url
+          .. '\nYou can initialize the current directory to this remote origin with `:AgitateRepoInit '
+          .. repository_name
+          .. '`',
+        vim.log.levels.INFO
+      )
+    end)
+  end)
 end
 
 ---Initialize a new repository and push to GitHub
