@@ -57,14 +57,71 @@ describe('core.branch', function()
   end)
 
   describe('current_branch', function()
-    -- Agitate's own repository is a git checkout, so this exercises the real
-    -- command rather than a stub.
-    it('reports a branch name inside a repository', function()
+    ---Creates a repository on a known branch, with one commit, and moves into it.
+    ---
+    ---Asserting against Agitate's own checkout looked fine locally and failed
+    ---in CI: a `pull_request` run checks out a detached merge commit, where
+    ---there is correctly no branch name to report. A scratch repository makes
+    ---the answer the same everywhere.
+    ---
+    ---The commit is required. On an unborn branch `git rev-parse HEAD` exits
+    ---128, so an empty repository reports no branch either.
+    local function in_repository(name, body)
+      local previous = vim.fn.getcwd()
+      local directory = vim.fn.tempname()
+
+      vim.fn.mkdir(directory, 'p')
+      vim.fn.system({ 'git', '-C', directory, 'init', '-b', name })
+      -- Identity is set per command: a CI runner has none configured, and
+      -- without it `git commit` refuses and the branch stays unborn.
+      vim.fn.system({
+        'git',
+        '-C',
+        directory,
+        '-c',
+        'user.name=agitate tests',
+        '-c',
+        'user.email=tests@agitate.invalid',
+        'commit',
+        '--allow-empty',
+        '-m',
+        'init',
+        '--no-gpg-sign',
+      })
+
+      vim.fn.chdir(directory)
+
+      local called_ok, err = pcall(body)
+
+      vim.fn.chdir(previous)
+
+      assert(called_ok, err)
+    end
+
+    it('reports the checked out branch', function()
+      in_repository('trunk', function()
+        assert.are.equal('trunk', branch.current_branch())
+      end)
+    end)
+
+    it('reports a branch whose name contains slashes', function()
+      in_repository('feature/nested/name', function()
+        assert.are.equal('feature/nested/name', branch.current_branch())
+      end)
+    end)
+
+    it('returns nil outside a repository', function()
+      local previous = vim.fn.getcwd()
+      local directory = vim.fn.tempname()
+
+      vim.fn.mkdir(directory, 'p')
+      vim.fn.chdir(directory)
+
       local name = branch.current_branch()
 
-      assert.is_string(name)
-      assert.is_true(#name > 0)
-      assert.are_not.equal('HEAD', name)
+      vim.fn.chdir(previous)
+
+      assert.is_nil(name)
     end)
   end)
 
