@@ -45,6 +45,49 @@ function M.describe_failure(action, response)
   return 'GitHub could not ' .. action .. '.\nHTTP ' .. response.status .. ': ' .. table.concat(reasons, '\n')
 end
 
+---Performs a request and hands back the decoded body on the expected status.
+---
+---Every GitHub endpoint Agitate uses has the same shape: succeed on one
+---status, otherwise explain what went wrong. Sharing that keeps the handling
+---in one place rather than repeating it once per endpoint.
+---
+---@param access_token string|nil Your GitHub PAT, optional for public endpoints
+---@param request table `{ path = string, method = string|nil, body = table|nil }`
+---@param action string What was being attempted, phrased to follow "could not"
+---@param expected number The status that means success
+---@param callback fun(ok: boolean, result: table|AgitateError) Completion handler
+function M.call(access_token, request, action, expected, callback)
+  http.request({
+    url = http.github_url(request.path),
+    method = request.method,
+    token = access_token,
+    body = request.body,
+  }, function(request_ok, response)
+    if not request_ok then
+      return callback(false, response)
+    end
+
+    if response.status ~= expected then
+      return callback(false, { message = M.describe_failure(action, response) })
+    end
+
+    if not response.body then
+      return callback(false, { message = 'service.github -- Error: expected JSON from `' .. request.path .. '`.\nRaw response: ' .. response.raw })
+    end
+
+    callback(true, response.body)
+  end)
+end
+
+---Performs a plain GET, succeeding on 200.
+---@param access_token string|nil
+---@param path string
+---@param action string
+---@param callback fun(ok: boolean, result: table|AgitateError)
+function M.get(access_token, path, action, callback)
+  M.call(access_token, { path = path }, action, 200, callback)
+end
+
 ---Determines whether a name belongs to an organization rather than a user.
 ---
 ---A 404 is the ordinary answer for a personal account, not a failure, so it
@@ -80,31 +123,32 @@ end
 ---@param options CreateRepositoryOptions Where and what to create
 ---@param callback fun(ok: boolean, result: GitHubNewRepoSuccessResponse|AgitateError) Completion handler
 function M.create_repository(access_token, options, callback)
-  http.request({
-    url = http.github_url(options.path .. '/repos'),
-    method = 'POST',
-    token = access_token,
-    body = {
-      name = options.name,
-      private = options.is_private,
+  M.call(
+    access_token,
+    {
+      path = options.path .. '/repos',
+      method = 'POST',
+      body = {
+        name = options.name,
+        private = options.is_private,
+      },
     },
-  }, function(request_ok, response)
-    if not request_ok then
-      return callback(false, response)
-    end
+    'create the repository `' .. options.name .. '`',
+    201,
+    function(created_ok, result)
+      if not created_ok then
+        return callback(false, result)
+      end
 
-    if response.status ~= 201 then
-      return callback(false, { message = M.describe_failure('create the repository `' .. options.name .. '`', response) })
-    end
+      if not result.html_url then
+        return callback(false, {
+          message = 'service.github.create_repository -- Error: GitHub reported success but returned no `html_url`.',
+        })
+      end
 
-    if not response.body or not response.body.html_url then
-      return callback(false, {
-        message = 'service.github.create_repository -- Error: GitHub reported success but returned no `html_url`.\nRaw response: ' .. response.raw,
-      })
+      callback(true, result)
     end
-
-    callback(true, response.body)
-  end)
+  )
 end
 
 ---Performs a plain GET and hands back the decoded body on 200.
