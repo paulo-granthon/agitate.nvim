@@ -84,6 +84,17 @@ describe('util', function()
     end)
   end)
 
+  describe('origin_repository', function()
+    -- Agitate's own checkout has a GitHub origin, so this runs the real
+    -- command rather than a stub.
+    it('reads the owner and repository from the current checkout', function()
+      local owner, repository = util.origin_repository()
+
+      assert.are.equal('paulo-granthon', owner)
+      assert.are.equal('agitate.nvim', repository)
+    end)
+  end)
+
   describe('build_github_html_url', function()
     it('builds a url with no trailing slash', function()
       assert.are.equal('https://github.com/octocat/hello', util.build_github_html_url('octocat', 'hello'))

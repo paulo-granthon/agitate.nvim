@@ -95,19 +95,6 @@ function M.Create(optional_parameters)
   end)
 end
 
----Reads the `origin` remote of the current repository.
----@return string|nil owner
----@return string|nil repository
-function M.origin_repository()
-  local output = vim.fn.systemlist({ 'git', 'remote', 'get-url', 'origin' })
-
-  if vim.v.shell_error ~= 0 then
-    return nil, nil
-  end
-
-  return util.parse_github_remote(output[1])
-end
-
 ---Change the visibility of an existing repository on GitHub
 ---@param optional_parameters? table<string> Parameters can be passed in order or explicitly
 ---with their corresponding flags:
@@ -133,7 +120,7 @@ function M.Visibility(optional_parameters)
     return agitate_error.throw('core.repo.Visibility -- Error: `-v` expects `public` or `private`, got `' .. tostring(visibility) .. '`')
   end
 
-  local origin_owner, origin_repository = M.origin_repository()
+  local origin_owner, origin_repository = util.origin_repository()
   local repository_name = parameters['-r'] or origin_repository
   local github_username = parameters['-u'] or origin_owner or options.github_username
 

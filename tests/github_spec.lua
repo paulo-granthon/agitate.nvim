@@ -52,6 +52,67 @@ describe('service.github', function()
     end)
   end)
 
+  describe('call', function()
+    it('passes the path, method and body to the transport', function()
+      respond_with(true, { status = 200, body = {}, raw = '{}' })
+
+      github.call('token', { path = 'repos/acme/thing', method = 'PATCH', body = { a = 1 } }, 'do it', 200, function() end)
+
+      assert.are.equal('https://api.github.com/repos/acme/thing', captured_request.url)
+      assert.are.equal('PATCH', captured_request.method)
+      assert.are.same({ a = 1 }, captured_request.body)
+      assert.are.equal('token', captured_request.token)
+    end)
+
+    it('succeeds only on the expected status', function()
+      respond_with(true, { status = 200, body = { ok = true }, raw = '{}' })
+
+      local result_ok
+      github.call('token', { path = 'x' }, 'do it', 201, function(value_ok)
+        result_ok = value_ok
+      end)
+
+      assert.is_false(result_ok)
+    end)
+
+    it('hands back the decoded body on the expected status', function()
+      respond_with(true, { status = 201, body = { id = 7 }, raw = '{}' })
+
+      local result
+      github.call('token', { path = 'x' }, 'do it', 201, function(_, value)
+        result = value
+      end)
+
+      assert.are.equal(7, result.id)
+    end)
+
+    -- A proxy or an outage can answer with HTML on a 200. Reporting that as a
+    -- success would hand the caller a nil body to index.
+    it('fails when a successful status carries no JSON', function()
+      respond_with(true, { status = 200, body = nil, raw = '<html>hello</html>' })
+
+      local result_ok, result
+      github.call('token', { path = 'x' }, 'do it', 200, function(value_ok, value)
+        result_ok, result = value_ok, value
+      end)
+
+      assert.is_false(result_ok)
+      assert.is_truthy(result.message:find('expected JSON', 1, true))
+    end)
+
+    it('passes a transport failure straight through', function()
+      respond_with(false, { message = 'curl exited with code 6' })
+
+      local result_ok, result
+      github.call('token', { path = 'x' }, 'do it', 200, function(value_ok, value)
+        result_ok, result = value_ok, value
+      end)
+
+      assert.is_false(result_ok)
+      assert.are.equal('curl exited with code 6', result.message)
+    end)
+  end)
+
   describe('is_organization', function()
     it('treats 200 as an organization', function()
       respond_with(true, { status = 200, body = { login = 'acme' }, raw = '{}' })

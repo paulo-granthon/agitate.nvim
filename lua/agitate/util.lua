@@ -47,10 +47,18 @@ function M.json_lr_trim(input_string)
   return false, nil
 end
 
+---Builds a github html url from the provided username and repository name
+---@param username string The GitHub username or organization
+---@param repository_name string The name of the repository
+---@return string The GitHub repository html url
+function M.build_github_html_url(username, repository_name)
+  return 'https://github.com/' .. username .. '/' .. repository_name
+end
+
 ---Extracts the owner and repository name from a GitHub remote URL.
 ---
 ---Handles the two forms `git remote get-url` returns: the https URL and the
----scp style ssh form. The trailing `.git` is optional in both, since it is
+---scp style ssh remote. The trailing `.git` is optional in both, because it is
 ---optional in what git accepts.
 ---@param url string|nil A git remote URL
 ---@return string|nil owner
@@ -73,12 +81,18 @@ function M.parse_github_remote(url)
   return owner, (repository:gsub('%.git$', ''))
 end
 
----Builds a github html url from the provided username and repository name
----@param username string The GitHub username or organization
----@param repository_name string The name of the repository
----@return string The GitHub repository html url
-function M.build_github_html_url(username, repository_name)
-  return 'https://github.com/' .. username .. '/' .. repository_name
+---Reads the owner and repository from the `origin` remote of the current
+---repository, so commands can default to the checkout the user is sitting in.
+---@return string|nil owner
+---@return string|nil repository
+function M.origin_repository()
+  local output = vim.fn.systemlist({ 'git', 'remote', 'get-url', 'origin' })
+
+  if vim.v.shell_error ~= 0 then
+    return nil, nil
+  end
+
+  return M.parse_github_remote(output[1])
 end
 
 return M
