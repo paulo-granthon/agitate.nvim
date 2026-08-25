@@ -43,6 +43,47 @@ describe('util', function()
     end)
   end)
 
+  describe('parse_github_remote', function()
+    it('parses an https remote', function()
+      local owner, repository = util.parse_github_remote('https://github.com/octocat/hello.git')
+
+      assert.are.equal('octocat', owner)
+      assert.are.equal('hello', repository)
+    end)
+
+    it('parses an https remote with no .git suffix', function()
+      local owner, repository = util.parse_github_remote('https://github.com/octocat/hello')
+
+      assert.are.equal('octocat', owner)
+      assert.are.equal('hello', repository)
+    end)
+
+    it('parses the scp style ssh remote', function()
+      local owner, repository = util.parse_github_remote('git@github.com:octocat/hello.git')
+
+      assert.are.equal('octocat', owner)
+      assert.are.equal('hello', repository)
+    end)
+
+    it('keeps a dot inside the repository name', function()
+      local _, repository = util.parse_github_remote('git@github.com:octocat/agitate.nvim.git')
+
+      assert.are.equal('agitate.nvim', repository)
+    end)
+
+    it('returns nil for a remote that is not GitHub', function()
+      local owner, repository = util.parse_github_remote('https://gitlab.com/octocat/hello.git')
+
+      assert.is_nil(owner)
+      assert.is_nil(repository)
+    end)
+
+    it('returns nil for a nil or malformed url', function()
+      assert.is_nil(util.parse_github_remote(nil))
+      assert.is_nil(util.parse_github_remote('not a url'))
+    end)
+  end)
+
   describe('build_github_html_url', function()
     it('builds a url with no trailing slash', function()
       assert.are.equal('https://github.com/octocat/hello', util.build_github_html_url('octocat', 'hello'))

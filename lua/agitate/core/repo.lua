@@ -95,6 +95,88 @@ function M.Create(optional_parameters)
   end)
 end
 
+---Reads the `origin` remote of the current repository.
+---@return string|nil owner
+---@return string|nil repository
+function M.origin_repository()
+  local output = vim.fn.systemlist({ 'git', 'remote', 'get-url', 'origin' })
+
+  if vim.v.shell_error ~= 0 then
+    return nil, nil
+  end
+
+  return util.parse_github_remote(output[1])
+end
+
+---Change the visibility of an existing repository on GitHub
+---@param optional_parameters? table<string> Parameters can be passed in order or explicitly
+---with their corresponding flags:
+---  -v: The visibility to set. Either 'public' or 'private'. Required.
+---  -r: The repository name. Defaults to the one in the `origin` remote.
+---  -u: The owner. Defaults to the one in the `origin` remote.
+function M.Visibility(optional_parameters)
+  local options = require('agitate.config').options
+
+  local parameters, leftover = parse_args({
+    '-v',
+    '-r',
+    '-u',
+  }, optional_parameters)
+
+  if #leftover > 0 then
+    return agitate_error.throw('core.repo.Visibility -- Error: unrecognised arguments: ' .. table.concat(leftover, ' '))
+  end
+
+  local visibility = parameters['-v']
+
+  if visibility ~= 'public' and visibility ~= 'private' then
+    return agitate_error.throw('core.repo.Visibility -- Error: `-v` expects `public` or `private`, got `' .. tostring(visibility) .. '`')
+  end
+
+  local origin_owner, origin_repository = M.origin_repository()
+  local repository_name = parameters['-r'] or origin_repository
+  local github_username = parameters['-u'] or origin_owner or options.github_username
+
+  if not github_username or not repository_name then
+    return agitate_error.throw(
+      'core.repo.Visibility -- Error: could not determine which repository to change.'
+        .. '\nPass `-u` and `-r`, or run this inside a repository whose `origin` points at GitHub.'
+    )
+  end
+
+  local is_private = visibility == 'private'
+
+  -- Going public exposes the repository and anything in its history to
+  -- everyone, and it cannot be meaningfully undone once it has been seen,
+  -- forked or indexed. Going private is not a disclosure, so it does not ask.
+  if not is_private then
+    local choice = vim.fn.confirm(
+      'Make `' .. github_username .. '/' .. repository_name .. '` public?' .. '\nEverything in it, including its full history, becomes visible to everyone.',
+      '&Make public\n&Cancel',
+      2,
+      'Question'
+    )
+
+    if choice ~= 1 then
+      return vim.notify('Visibility change cancelled.', vim.log.levels.INFO)
+    end
+  end
+
+  local github_access_token = options.github_access_token
+
+  if not github_access_token then
+    return agitate_error.throw('core.repo.Visibility -- Error: undefined GitHub access token')
+  end
+
+  github.set_repository_visibility(github_access_token, github_username, repository_name, is_private, function(changed_ok, result)
+    if not changed_ok then
+      return agitate_error.throw(result)
+    end
+
+    vim.notify('`' .. github_username .. '/' .. repository_name .. '` is now ' .. visibility .. '.', vim.log.levels.INFO)
+  end)
+end
+
 ---Initialize a new repository and push to GitHub
 ---@param optional_parameters? table<string> The value at each index depends on the number of parameters passed:
 --- 1 optional_parameter: The name of the repository to create.

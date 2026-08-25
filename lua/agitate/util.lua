@@ -47,6 +47,32 @@ function M.json_lr_trim(input_string)
   return false, nil
 end
 
+---Extracts the owner and repository name from a GitHub remote URL.
+---
+---Handles the two forms `git remote get-url` returns: the https URL and the
+---scp style ssh form. The trailing `.git` is optional in both, since it is
+---optional in what git accepts.
+---@param url string|nil A git remote URL
+---@return string|nil owner
+---@return string|nil repository
+function M.parse_github_remote(url)
+  if type(url) ~= 'string' then
+    return nil, nil
+  end
+
+  local owner, repository = url:match('^https://github%.com/([^/]+)/([^/]+)$')
+
+  if not owner then
+    owner, repository = url:match('^git@github%.com:([^/]+)/([^/]+)$')
+  end
+
+  if not owner then
+    return nil, nil
+  end
+
+  return owner, (repository:gsub('%.git$', ''))
+end
+
 ---Builds a github html url from the provided username and repository name
 ---@param username string The GitHub username or organization
 ---@param repository_name string The name of the repository
