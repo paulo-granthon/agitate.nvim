@@ -95,6 +95,73 @@ describe('util', function()
     end)
   end)
 
+  describe('current_branch', function()
+    ---Creates a repository on a known branch, with one commit, and moves into it.
+    ---
+    ---A scratch repository rather than Agitate's own checkout: a
+    ---`pull_request` workflow run checks out a detached merge commit, where
+    ---there is correctly no branch name to report.
+    ---
+    ---The commit is required, because `git rev-parse HEAD` exits 128 on an
+    ---unborn branch, and it carries its own identity because a CI runner has
+    ---none configured.
+    local function in_repository(name, body)
+      local previous = vim.fn.getcwd()
+      local directory = vim.fn.tempname()
+
+      vim.fn.mkdir(directory, 'p')
+      vim.fn.system({ 'git', '-C', directory, 'init', '-b', name })
+      vim.fn.system({
+        'git',
+        '-C',
+        directory,
+        '-c',
+        'user.name=agitate tests',
+        '-c',
+        'user.email=tests@agitate.invalid',
+        'commit',
+        '--allow-empty',
+        '-m',
+        'init',
+        '--no-gpg-sign',
+      })
+
+      vim.fn.chdir(directory)
+
+      local called_ok, err = pcall(body)
+
+      vim.fn.chdir(previous)
+
+      assert(called_ok, err)
+    end
+
+    it('reports the checked out branch', function()
+      in_repository('trunk', function()
+        assert.are.equal('trunk', util.current_branch())
+      end)
+    end)
+
+    it('reports a branch whose name contains slashes', function()
+      in_repository('feature/nested/name', function()
+        assert.are.equal('feature/nested/name', util.current_branch())
+      end)
+    end)
+
+    it('returns nil outside a repository', function()
+      local previous = vim.fn.getcwd()
+      local directory = vim.fn.tempname()
+
+      vim.fn.mkdir(directory, 'p')
+      vim.fn.chdir(directory)
+
+      local name = util.current_branch()
+
+      vim.fn.chdir(previous)
+
+      assert.is_nil(name)
+    end)
+  end)
+
   describe('build_github_html_url', function()
     it('builds a url with no trailing slash', function()
       assert.are.equal('https://github.com/octocat/hello', util.build_github_html_url('octocat', 'hello'))
