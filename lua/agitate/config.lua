@@ -2,7 +2,7 @@ local M = {}
 
 local ok, agitate_error = pcall(require, 'agitate.error')
 if not ok then
-  return vim.api.nvim_err_writeln(require('agitate.const.error').import)
+  return vim.notify(require('agitate.const.error').import, vim.log.levels.ERROR)
 end
 
 local types_ok, types_or_err = pcall(require, 'agitate.types.config')

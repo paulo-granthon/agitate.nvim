@@ -2,7 +2,7 @@ local M = {}
 
 local ok, agitate_error = pcall(require, 'agitate.error')
 if not ok then
-  return vim.api.nvim_err_writeln(require('agitate.const.error').import)
+  return vim.notify(require('agitate.const.error').import, vim.log.levels.ERROR)
 end
 
 local util_ok, util_or_err = pcall(require, 'agitate.util')
@@ -54,10 +54,13 @@ function M.Create(optional_parameters)
   local is_org, _ = github.get_organization(github_access_token, github_username)
 
   if is_org then
-    print((is_private and 'Private r' or 'R') .. 'epository ' .. repository_name .. ' will be created under organization ' .. github_username)
+    vim.notify(
+      (is_private and 'Private r' or 'R') .. 'epository ' .. repository_name .. ' will be created under organization ' .. github_username,
+      vim.log.levels.INFO
+    )
     path = 'orgs/' .. github_username
   else
-    print((is_private and 'Private r' or 'R') .. 'epository ' .. repository_name .. ' will be created under user ' .. github_username)
+    vim.notify((is_private and 'Private r' or 'R') .. 'epository ' .. repository_name .. ' will be created under user ' .. github_username, vim.log.levels.INFO)
   end
 
   local github_post_ok, github_post_response = github.post_new_repo(github_access_token, repository_name, is_private, path)
@@ -67,33 +70,33 @@ function M.Create(optional_parameters)
   end
 
   if github_post_response.errors then
-    return vim.api.nvim_err_writeln(
-      'Agitate | core.repo.Create | Error:'
-        .. '\nFailed to create repository at '
+    local first_error = github_post_response.errors[1]
+
+    return agitate_error.throw(
+      'core.repo.Create -- Error: failed to create repository at '
         .. util.build_github_html_url(github_username, repository_name)
-        .. '\nReason: `'
-        .. github_post_response.errors[1].message
-        .. '`'
+        .. '\nReason: '
+        .. ((first_error and first_error.message) or vim.inspect(github_post_response.errors))
     )
   end
 
   if not github_post_response.html_url then
-    return vim.api.nvim_err_writeln(
-      'Agitate | core.repo.Create | Error:'
-        .. '\nError during repository creation at '
+    return agitate_error.throw(
+      'core.repo.Create -- Error: repository creation at '
         .. util.build_github_html_url(github_username, repository_name)
-        .. '\nReason: `html_url` not found in response. Full response: `'
-        .. util.flatten_table(github_post_response)
-        .. '`'
+        .. ' returned no `html_url`.'
+        .. '\nFull response: '
+        .. vim.inspect(github_post_response)
     )
   end
 
-  print(
+  vim.notify(
     'Created remote GitHub repository at '
       .. github_post_response.html_url
       .. '\nYou can initialize the current directory to this remote origin with `:AgitateRepoInit '
       .. repository_name
-      .. '`'
+      .. '`',
+    vim.log.levels.INFO
   )
 end
 
