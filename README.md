@@ -36,6 +36,24 @@ You can easily verify what the commands are and what they do by looking at the
   This command basically does what GitHub tells you to do to contribute to a
   newly created repository.
 
+#### File
+
+- `:AgitateFileGitignore` - Add a `.gitignore` from a GitHub template.  
+  Takes `-t` for the template name. Without it, the available templates are
+  offered for selection.
+
+- `:AgitateFileLicense` - Add a `LICENSE` from a GitHub template.  
+  Takes `-l` for the license key (such as `mit`) and `-a` for the copyright
+  holder. Without `-l` the licenses are offered for selection. The holder
+  defaults to `file.license.author`, then to `github_username`.  
+  The `[year]` and `[fullname]` placeholders GitHub leaves in the template are
+  filled in before the file is written.
+
+- `:AgitateFileFunding` - Add a `.github/FUNDING.yml`.  
+  Takes `-u` for the username, defaulting to the configured one.
+
+All three ask before replacing a file that already exists.
+
 #### Branch
 
 - `:AgitateBranchCreateCheckoutAndPush` - Create a new branch from the current
@@ -109,6 +127,12 @@ require('agitate').setup({
       first_commit_message = 'first commit', -- message to use when initializing locally
     },
   },
+
+  file = { -- File generation configuration
+    license = {
+      author = nil, -- copyright holder for a generated LICENSE, defaults to github_username
+    },
+  },
 }
 
 ```
@@ -136,11 +160,14 @@ Features planned for implementation
   - [ ] Add visibility function (change repo public / private)
 
 - [ ] File generation functions:
-  - [ ] Add `.gitiginore` from github template
-  - [ ] Add `LICENSE` from github template
+  - [x] Add `.gitignore` from github template
+  - [x] Add `LICENSE` from github template
 
-  - [ ] Add `FUNDING.yml`
+  - [x] Add `FUNDING.yml`
   - [ ] Add `MAINTAINERS.md` (?)
+    - Still open. GitHub has no template endpoint for this one, and there is no
+      settled convention for what it should contain, so it needs a decision
+      about the format before it can be generated.
 
 - [ ] Issues & PRs:
   - todo!()

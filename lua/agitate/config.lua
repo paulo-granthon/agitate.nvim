@@ -20,6 +20,11 @@ local defaults = {
       first_commit_message = 'first commit',
     },
   },
+  file = {
+    license = {
+      author = nil,
+    },
+  },
 }
 
 ---@type Config

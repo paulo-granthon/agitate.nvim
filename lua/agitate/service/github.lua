@@ -107,4 +107,63 @@ function M.create_repository(access_token, options, callback)
   end)
 end
 
+---Performs a plain GET and hands back the decoded body on 200.
+---
+---The template endpoints are all shaped the same way, so they share one
+---helper rather than repeating the status handling four times.
+---@param access_token string|nil Your GitHub PAT, optional for these endpoints
+---@param path string The API path
+---@param action string What was being attempted, for the failure message
+---@param callback fun(ok: boolean, result: table|AgitateError) Completion handler
+local function get(access_token, path, action, callback)
+  http.request({
+    url = http.github_url(path),
+    token = access_token,
+  }, function(request_ok, response)
+    if not request_ok then
+      return callback(false, response)
+    end
+
+    if response.status ~= 200 then
+      return callback(false, { message = M.describe_failure(action, response) })
+    end
+
+    if not response.body then
+      return callback(false, { message = 'service.github -- Error: expected JSON from `' .. path .. '`.\nRaw response: ' .. response.raw })
+    end
+
+    callback(true, response.body)
+  end)
+end
+
+---Lists the names of every available `.gitignore` template.
+---@param access_token string|nil
+---@param callback fun(ok: boolean, result: string[]|AgitateError)
+function M.list_gitignore_templates(access_token, callback)
+  get(access_token, 'gitignore/templates', 'list the gitignore templates', callback)
+end
+
+---Fetches one `.gitignore` template.
+---@param access_token string|nil
+---@param name string The template name, as returned by `list_gitignore_templates`
+---@param callback fun(ok: boolean, result: table|AgitateError)
+function M.get_gitignore_template(access_token, name, callback)
+  get(access_token, 'gitignore/templates/' .. name, 'fetch the gitignore template `' .. name .. '`', callback)
+end
+
+---Lists the licenses GitHub can supply.
+---@param access_token string|nil
+---@param callback fun(ok: boolean, result: table[]|AgitateError)
+function M.list_licenses(access_token, callback)
+  get(access_token, 'licenses', 'list the available licenses', callback)
+end
+
+---Fetches one license, including its full text.
+---@param access_token string|nil
+---@param key string The license key, such as `mit`
+---@param callback fun(ok: boolean, result: table|AgitateError)
+function M.get_license(access_token, key, callback)
+  get(access_token, 'licenses/' .. key, 'fetch the license `' .. key .. '`', callback)
+end
+
 return M
