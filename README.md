@@ -19,6 +19,7 @@ context and the action. Example:
 
 - **Repo**: Actions that affect the repository as a whole.
 - **Branch**: Actions that affect the branches of the repository.
+- **Issue**: Actions on the issues of the repository.
 
 You can easily verify what the commands are and what they do by looking at the
 [files in the `api` directory](./lua/agitate/api). But here's a quick overview:
@@ -35,6 +36,28 @@ You can easily verify what the commands are and what they do by looking at the
   directory as the repository name if no argument is provided.
   This command basically does what GitHub tells you to do to contribute to a
   newly created repository.
+
+#### Issue
+
+Every issue command works out the repository from the `origin` remote, so
+inside a checkout you rarely need to name it. `-u` and `-r` override the owner
+and repository anywhere below.
+
+- `:AgitateIssueCreate` - Open a new issue.  
+  Opens a scratch buffer: the first line is the title, the rest is the body.
+  Write the buffer to submit, close it without writing to abandon.
+
+- `:AgitateIssueList` - List the issues of a repository.  
+  Takes `-s` for the state (`open`, `closed` or `all`, defaulting to `open`).  
+  In the list: `<CR>` views, `o` opens in the browser, `c` comments, `x` closes
+  and `q` quits.
+
+- `:AgitateIssueView` - View a single issue and its comments. Takes `-n`.
+
+- `:AgitateIssueComment` - Comment on an issue. Takes `-n`.
+
+- `:AgitateIssueClose` / `:AgitateIssueReopen` - Close or reopen an issue.
+  Takes `-n`.
 
 #### Branch
 
@@ -143,7 +166,8 @@ Features planned for implementation
   - [ ] Add `MAINTAINERS.md` (?)
 
 - [ ] Issues & PRs:
-  - todo!()
+  - [x] Open, list, view, comment on, close and reopen issues.
+  - [ ] Pull requests.
 
 - [ ] Project functions:
   - Blocked. The classic Projects REST API has been sunset and Projects V2 is

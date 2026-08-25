@@ -19,6 +19,13 @@ function M.setup()
   else
     agitate_error.throw(repo_or_err)
   end
+
+  local issue_ok, issue_or_err = pcall(require, 'agitate.api.issue')
+  if issue_ok then
+    issue_or_err.setup()
+  else
+    agitate_error.throw(issue_or_err)
+  end
 end
 
 return M

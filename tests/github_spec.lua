@@ -216,4 +216,87 @@ describe('service.github', function()
       assert.is_truthy(result.message:find('no `html_url`', 1, true))
     end)
   end)
+  describe('list_issues', function()
+    -- GitHub's issues endpoint also returns pull requests. Any entry with a
+    -- `pull_request` key is one, and an issue list showing them would be wrong.
+    it('filters out pull requests', function()
+      respond_with(true, {
+        status = 200,
+        raw = '[]',
+        body = {
+          { number = 1, title = 'A real issue' },
+          { number = 2, title = 'A pull request', pull_request = { url = 'https://api.github.com/x' } },
+          { number = 3, title = 'Another issue' },
+        },
+      })
+
+      local result
+      github.list_issues('token', 'acme', 'thing', 'open', function(_, value)
+        result = value
+      end)
+
+      assert.are.equal(2, #result)
+      assert.are.equal(1, result[1].number)
+      assert.are.equal(3, result[2].number)
+    end)
+
+    it('requests the given state', function()
+      respond_with(true, { status = 200, body = {}, raw = '[]' })
+
+      github.list_issues('token', 'acme', 'thing', 'closed', function() end)
+
+      assert.is_truthy(captured_request.url:find('state=closed', 1, true))
+      assert.is_truthy(captured_request.url:find('repos/acme/thing/issues', 1, true))
+    end)
+
+    it('passes a failure through without filtering it', function()
+      respond_with(true, { status = 404, body = { message = 'Not Found' }, raw = '{}' })
+
+      local list_ok, result
+      github.list_issues('token', 'acme', 'thing', 'open', function(value_ok, value)
+        list_ok, result = value_ok, value
+      end)
+
+      assert.is_false(list_ok)
+      assert.is_truthy(result.message:find('Not Found', 1, true))
+    end)
+  end)
+
+  describe('create_issue', function()
+    it('posts the title and body', function()
+      respond_with(true, { status = 201, body = { number = 5 }, raw = '{}' })
+
+      github.create_issue('token', 'acme', 'thing', { title = 'Fix it', body = 'Please.' }, function() end)
+
+      assert.are.equal('POST', captured_request.method)
+      assert.are.equal('https://api.github.com/repos/acme/thing/issues', captured_request.url)
+      assert.are.same({ title = 'Fix it', body = 'Please.' }, captured_request.body)
+    end)
+  end)
+
+  describe('set_issue_state', function()
+    it('patches the state', function()
+      respond_with(true, { status = 200, body = {}, raw = '{}' })
+
+      github.set_issue_state('token', 'acme', 'thing', 7, 'closed', function() end)
+
+      assert.are.equal('PATCH', captured_request.method)
+      assert.are.equal('https://api.github.com/repos/acme/thing/issues/7', captured_request.url)
+      assert.are.same({ state = 'closed' }, captured_request.body)
+    end)
+  end)
+
+  describe('create_comment', function()
+    -- GitHub models a pull request as an issue for commenting, which is why
+    -- the path says `issues` even for a pull request number.
+    it('posts to the issues comments endpoint', function()
+      respond_with(true, { status = 201, body = {}, raw = '{}' })
+
+      github.create_comment('token', 'acme', 'thing', 9, 'Looks good.', function() end)
+
+      assert.are.equal('POST', captured_request.method)
+      assert.are.equal('https://api.github.com/repos/acme/thing/issues/9/comments', captured_request.url)
+      assert.are.same({ body = 'Looks good.' }, captured_request.body)
+    end)
+  end)
 end)

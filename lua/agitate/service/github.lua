@@ -178,4 +178,87 @@ function M.create_comment(access_token, owner, repository, number, body, callbac
   }, 'comment on `' .. owner .. '/' .. repository .. '#' .. number .. '`', 201, callback)
 end
 
+---Lists the issues of a repository.
+---
+---GitHub's issues endpoint also returns pull requests, which is a long
+---standing quirk of the API rather than something the caller asked for. Any
+---entry carrying a `pull_request` key is one, and is filtered out here so an
+---issue list is only issues.
+---@param access_token string
+---@param owner string
+---@param repository string
+---@param state string `open`, `closed` or `all`
+---@param callback fun(ok: boolean, result: table[]|AgitateError)
+function M.list_issues(access_token, owner, repository, state, callback)
+  M.get(
+    access_token,
+    'repos/' .. owner .. '/' .. repository .. '/issues?state=' .. state .. '&per_page=100',
+    'list the issues of `' .. owner .. '/' .. repository .. '`',
+    function(list_ok, result)
+      if not list_ok then
+        return callback(false, result)
+      end
+
+      local issues = {}
+
+      for _, entry in ipairs(result) do
+        if not entry.pull_request then
+          issues[#issues + 1] = entry
+        end
+      end
+
+      callback(true, issues)
+    end
+  )
+end
+
+---Fetches a single issue.
+---@param access_token string
+---@param owner string
+---@param repository string
+---@param number number
+---@param callback fun(ok: boolean, result: table|AgitateError)
+function M.get_issue(access_token, owner, repository, number, callback)
+  M.get(access_token, 'repos/' .. owner .. '/' .. repository .. '/issues/' .. number, 'read issue #' .. number, callback)
+end
+
+---Fetches the comments on an issue or pull request.
+---@param access_token string
+---@param owner string
+---@param repository string
+---@param number number
+---@param callback fun(ok: boolean, result: table[]|AgitateError)
+function M.list_comments(access_token, owner, repository, number, callback)
+  M.get(access_token, 'repos/' .. owner .. '/' .. repository .. '/issues/' .. number .. '/comments?per_page=100', 'read the comments on #' .. number, callback)
+end
+
+---Opens a new issue.
+---@param access_token string
+---@param owner string
+---@param repository string
+---@param issue table `{ title = string, body = string }`
+---@param callback fun(ok: boolean, result: table|AgitateError)
+function M.create_issue(access_token, owner, repository, issue, callback)
+  M.call(access_token, {
+    path = 'repos/' .. owner .. '/' .. repository .. '/issues',
+    method = 'POST',
+    body = { title = issue.title, body = issue.body },
+  }, 'open an issue on `' .. owner .. '/' .. repository .. '`', 201, callback)
+end
+
+---Opens or closes an issue.
+---@param access_token string
+---@param owner string
+---@param repository string
+---@param number number
+---@param state string `open` or `closed`
+---@param callback fun(ok: boolean, result: table|AgitateError)
+function M.set_issue_state(access_token, owner, repository, number, state, callback)
+  M.call(access_token, {
+    path = 'repos/' .. owner .. '/' .. repository .. '/issues/' .. number,
+    method = 'PATCH',
+    body = { state = state },
+  }, (state == 'closed' and 'close' or 'reopen') .. ' issue #' .. number, 200, callback)
+end
+
 return M
