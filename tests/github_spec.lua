@@ -216,4 +216,55 @@ describe('service.github', function()
       assert.is_truthy(result.message:find('no `html_url`', 1, true))
     end)
   end)
+  describe('create_pull_request', function()
+    it('posts the title, body, head and base', function()
+      respond_with(true, { status = 201, body = { number = 3 }, raw = '{}' })
+
+      github.create_pull_request('token', 'acme', 'thing', {
+        title = 'Add it',
+        body = 'Why.',
+        head = 'feature',
+        base = 'main',
+      }, function() end)
+
+      assert.are.equal('POST', captured_request.method)
+      assert.are.equal('https://api.github.com/repos/acme/thing/pulls', captured_request.url)
+      assert.are.same({ title = 'Add it', body = 'Why.', head = 'feature', base = 'main' }, captured_request.body)
+    end)
+  end)
+
+  describe('merge_pull_request', function()
+    it('PUTs the merge method to the merge endpoint', function()
+      respond_with(true, { status = 200, body = { merged = true }, raw = '{}' })
+
+      github.merge_pull_request('token', 'acme', 'thing', 4, 'squash', function() end)
+
+      assert.are.equal('PUT', captured_request.method)
+      assert.are.equal('https://api.github.com/repos/acme/thing/pulls/4/merge', captured_request.url)
+      assert.are.same({ merge_method = 'squash' }, captured_request.body)
+    end)
+
+    it('reports the GitHub reason when the merge is refused', function()
+      respond_with(true, { status = 405, body = { message = 'Pull Request is not mergeable' }, raw = '{}' })
+
+      local merged_ok, result
+      github.merge_pull_request('token', 'acme', 'thing', 4, 'merge', function(value_ok, value)
+        merged_ok, result = value_ok, value
+      end)
+
+      assert.is_false(merged_ok)
+      assert.is_truthy(result.message:find('not mergeable', 1, true))
+    end)
+  end)
+
+  describe('list_pull_requests', function()
+    it('requests the given state from the pulls endpoint', function()
+      respond_with(true, { status = 200, body = {}, raw = '[]' })
+
+      github.list_pull_requests('token', 'acme', 'thing', 'all', function() end)
+
+      assert.is_truthy(captured_request.url:find('repos/acme/thing/pulls', 1, true))
+      assert.is_truthy(captured_request.url:find('state=all', 1, true))
+    end)
+  end)
 end)

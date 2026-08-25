@@ -101,4 +101,19 @@ function M.open_url(url)
   vim.ui.open(url)
 end
 
+---Returns the name of the currently checked out branch.
+---
+---Returns nil in a detached HEAD or outside a repository, where there is no
+---branch name to report.
+---@return string|nil
+function M.current_branch()
+  local output = vim.fn.systemlist({ 'git', 'rev-parse', '--abbrev-ref', 'HEAD' })
+
+  if vim.v.shell_error ~= 0 or not output[1] or output[1] == '' or output[1] == 'HEAD' then
+    return nil
+  end
+
+  return output[1]
+end
+
 return M

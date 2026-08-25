@@ -19,6 +19,7 @@ context and the action. Example:
 
 - **Repo**: Actions that affect the repository as a whole.
 - **Branch**: Actions that affect the branches of the repository.
+- **Pr**: Actions on the pull requests of the repository.
 
 You can easily verify what the commands are and what they do by looking at the
 [files in the `api` directory](./lua/agitate/api). But here's a quick overview:
@@ -35,6 +36,30 @@ You can easily verify what the commands are and what they do by looking at the
   directory as the repository name if no argument is provided.
   This command basically does what GitHub tells you to do to contribute to a
   newly created repository.
+
+#### Pr
+
+Like the issue commands, these work out the repository from the `origin`
+remote. `-u` and `-r` override the owner and repository anywhere below.
+
+- `:AgitatePrCreate` - Open a new pull request.  
+  Takes `-H` for the head branch and `-B` for the base. Head defaults to the
+  current branch and base to the repository's default branch.  
+  Opens a scratch buffer: the first line is the title, the rest is the body.
+
+- `:AgitatePrList` - List the pull requests. Takes `-s` for the state.  
+  In the list: `<CR>` views, `o` opens in the browser, `c` comments, `m` merges
+  and `q` quits.
+
+- `:AgitatePrView` - View a pull request and its comments. Takes `-n`.
+
+- `:AgitatePrComment` - Comment on a pull request. Takes `-n`.
+
+- `:AgitatePrMerge` - Merge a pull request.  
+  Takes `-n` and `-m` for the method (`merge`, `squash` or `rebase`,
+  defaulting to `merge`).  
+  Refuses when GitHub reports the pull request as unmergeable, and asks for
+  confirmation before merging.
 
 #### Branch
 
@@ -142,8 +167,9 @@ Features planned for implementation
   - [ ] Add `FUNDING.yml`
   - [ ] Add `MAINTAINERS.md` (?)
 
-- [ ] Issues & PRs:
-  - todo!()
+- [x] Issues & PRs:
+  - [x] Open, list, view, comment on, close and reopen issues.
+  - [x] Open, list, view, comment on and merge pull requests.
 
 - [ ] Project functions:
   - Blocked. The classic Projects REST API has been sunset and Projects V2 is
