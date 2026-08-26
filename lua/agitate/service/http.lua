@@ -123,10 +123,19 @@ function M.request(request, callback)
     stdin = M._build_config(request.token),
     text = true,
   }, function(completed)
+    -- A killed process reports `signal` with `code` left nil, so testing the
+    -- code alone both misread that as an exit and concatenated nil into the
+    -- message, replacing the real reason with a Lua error.
+    if completed.signal ~= nil and completed.signal ~= 0 then
+      return finish(false, {
+        message = 'service.http -- Error: curl was terminated by signal ' .. tostring(completed.signal) .. '.',
+      })
+    end
+
     if completed.code ~= 0 then
       return finish(false, {
         message = 'service.http -- Error: curl exited with code '
-          .. completed.code
+          .. tostring(completed.code)
           .. '.\n'
           .. (completed.stderr ~= nil and completed.stderr ~= '' and completed.stderr or 'No error output.'),
       })
