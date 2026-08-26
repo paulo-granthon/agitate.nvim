@@ -117,7 +117,9 @@ local function view(resolved, number)
       )
 
       if not comments_ok then
-        vim.notify('Could not load the comments for #' .. number .. '.', vim.log.levels.WARN)
+        -- The reason matters: expired token, rate limit and network failure
+        -- all land here and need different responses from the user.
+        vim.notify('Could not load the comments for #' .. number .. '.\n' .. (agitate_error.describe(comments) or 'No reason given.'), vim.log.levels.WARN)
       end
     end)
   end)
@@ -180,10 +182,10 @@ function M.List(optional_parameters)
             util.open_url(entry.html_url)
           end,
           ['c'] = function(entry)
-            M.comment(resolved, entry.number)
+            M._comment(resolved, entry.number)
           end,
           ['x'] = function(entry)
-            M.close(resolved, entry.number)
+            M._close(resolved, entry.number)
           end,
         },
       })
@@ -206,7 +208,7 @@ end
 ---Adds a comment to an issue, given an already resolved context.
 ---@param resolved table
 ---@param number number
-function M.comment(resolved, number)
+function M._comment(resolved, number)
   editor.open({
     name = 'agitate://issue/' .. number .. '/comment',
     -- `raw` because a comment has no title. Without it the buffer went through
@@ -233,7 +235,7 @@ end
 ---Closes an issue, given an already resolved context.
 ---@param resolved table
 ---@param number number
-function M.close(resolved, number)
+function M._close(resolved, number)
   github.set_issue_state(resolved.token, resolved.owner, resolved.repository, number, 'closed', function(closed_ok, issue)
     if not closed_ok then
       return agitate_error.throw(issue)
@@ -250,7 +252,7 @@ function M.Comment(optional_parameters)
     local number = issue_number(parameters['-n'], 'core.issue.Comment')
 
     if number then
-      M.comment(resolved, number)
+      M._comment(resolved, number)
     end
   end)
 end
@@ -262,7 +264,7 @@ function M.Close(optional_parameters)
     local number = issue_number(parameters['-n'], 'core.issue.Close')
 
     if number then
-      M.close(resolved, number)
+      M._close(resolved, number)
     end
   end)
 end
