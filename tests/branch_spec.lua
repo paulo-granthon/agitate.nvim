@@ -128,8 +128,13 @@ describe('core.branch', function()
   end)
 
   describe('exists_on_remote', function()
+    -- Generated per run rather than hard coded. A fixed name is a bet that
+    -- nobody ever pushes a branch called that, and the test would then fail
+    -- while the code was right.
     it('is false for a branch that does not exist', function()
-      assert.is_false(branch._exists_on_remote('origin', 'a-branch-that-should-never-exist'))
+      local name = 'agitate-absent-' .. vim.fn.sha256(tostring(vim.uv.hrtime())):sub(1, 12)
+
+      assert.is_false(branch._exists_on_remote('origin', name))
     end)
   end)
   describe('git', function()
