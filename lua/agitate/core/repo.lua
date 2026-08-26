@@ -2,17 +2,21 @@ local M = {}
 
 local ok, agitate_error = pcall(require, 'agitate.error')
 if not ok then
-  return vim.notify(require('agitate.const.error').import, vim.log.levels.ERROR)
+  local message = require('agitate.const.error').import
+  vim.notify(message, vim.log.levels.ERROR)
+  error(message, 0)
 end
 
 local util_ok, util_or_err = pcall(require, 'agitate.util')
 if not util_ok then
-  return agitate_error.throw(util_or_err)
+  agitate_error.throw(util_or_err)
+  error(util_or_err, 0)
 end
 
 local github_ok, github_or_err = pcall(require, 'agitate.service.github')
 if not github_ok then
-  return agitate_error.throw(github_or_err)
+  agitate_error.throw(github_or_err)
+  error(github_or_err, 0)
 end
 
 local util = util_or_err
@@ -33,11 +37,19 @@ local parse_args = require('agitate.parse_args')
 function M.Create(optional_parameters)
   local options = require('agitate.config').options
 
-  local parameters, _ = parse_args({
+  local parameters, leftover, incomplete = parse_args({
     '-r',
     '-u',
     '-v',
   }, optional_parameters)
+
+  if #incomplete > 0 then
+    return agitate_error.throw('core.repo.Create -- Error: missing a value for ' .. table.concat(incomplete, ' '))
+  end
+
+  if #leftover > 0 then
+    return agitate_error.throw('core.repo.Create -- Error: unrecognised arguments: ' .. table.concat(leftover, ' '))
+  end
 
   local repository_name = parameters['-r'] or util.get_directory_name()
   local github_username = parameters['-u'] or options.github_username
