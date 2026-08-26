@@ -63,7 +63,14 @@ function M.Create(optional_parameters)
 
   local path = 'user'
 
-  local is_org, _ = github.get_organization(github_access_token, github_username)
+  -- Only a 404 means "this name is a user". Bad credentials, a rate limit or
+  -- a decode failure all also return `false`, and treating those as a user
+  -- posts the repository to `user/repos` under the wrong assumption.
+  local is_org, org_result = github.get_organization(github_access_token, github_username)
+
+  if not is_org and org_result and org_result.message and org_result.message ~= 'Not Found' then
+    return agitate_error.throw(org_result)
+  end
 
   if is_org then
     vim.notify(
@@ -141,7 +148,12 @@ function M.Init(optional_parameters)
     return agitate_error.throw('core.repo.Init -- Error: undefined GitHub username or repository name')
   end
 
-  util.execute_command('echo "# ' .. github_repository_name .. '" >> README.md')
+  -- Written directly rather than through a shell. `execute_command` runs a
+  -- string via `vim.fn.systemlist`, so the repository name was interpolated
+  -- into a shell command with a `>>` redirection.
+  if vim.fn.writefile({ '# ' .. github_repository_name }, 'README.md', 'a') ~= 0 then
+    return agitate_error.throw('core.repo.Init -- Error: could not write README.md')
+  end
   vim.cmd('G init')
   vim.cmd('G add README.md')
   vim.cmd('G commit -m "' .. options.repo.init.first_commit_message .. '"')
