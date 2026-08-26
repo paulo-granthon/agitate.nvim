@@ -23,7 +23,7 @@ function M.render(entry, comments, extra)
   end
 
   if entry.html_url then
-    lines[#lines + 1] = '- URL: ' .. entry.html_url
+    lines[#lines + 1] = '- URL: ' .. tostring(entry.html_url)
   end
 
   lines[#lines + 1] = ''
