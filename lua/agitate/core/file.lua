@@ -65,10 +65,10 @@ function M.funding_content(username)
 end
 
 ---Writes lines to a path, asking before replacing an existing file.
+---@param command string The calling command, for the error prefix
 ---@param path string Absolute path to write
 ---@param lines string[] The contents
 ---@param description string What is being written, for the messages
----@param command string The calling command, for the error prefix
 local function write_file(command, path, lines, description)
   -- `filereadable` answers "can I read this", not "is something here". An
   -- existing but unreadable file answered no, so the overwrite confirmation
@@ -165,6 +165,10 @@ function M.Gitignore(optional_parameters)
       return agitate_error.throw(templates)
     end
 
+    if type(templates) ~= 'table' or templates[1] == nil then
+      return agitate_error.throw('core.file.Gitignore -- Error: GitHub did not return a list of templates.')
+    end
+
     choose(nil, templates, 'Gitignore template', fetch)
   end)
 end
@@ -211,7 +215,9 @@ function M.License(optional_parameters)
         return agitate_error.throw(result)
       end
 
-      if not result.body then
+      -- Type checked, not just truthiness: the transport allows any JSON type,
+      -- and `apply_license_placeholders` calls `gsub` on this.
+      if type(result.body) ~= 'string' or not result.body:match('%S') then
         return agitate_error.throw('core.file.License -- Error: GitHub returned no text for the `' .. key .. '` license.')
       end
 
@@ -230,10 +236,18 @@ function M.License(optional_parameters)
       return agitate_error.throw(licenses)
     end
 
+    if type(licenses) ~= 'table' or licenses[1] == nil then
+      return agitate_error.throw('core.file.License -- Error: GitHub did not return a list of licenses.')
+    end
+
     local keys = {}
     local labels = {}
 
     for _, license in ipairs(licenses) do
+      if type(license) ~= 'table' or type(license.key) ~= 'string' then
+        return agitate_error.throw('core.file.License -- Error: GitHub returned a license entry with no key.')
+      end
+
       keys[#keys + 1] = license.key
       labels[license.key] = license.name or license.key
     end
