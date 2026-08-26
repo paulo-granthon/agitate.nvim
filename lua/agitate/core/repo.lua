@@ -158,7 +158,11 @@ function M.Init(optional_parameters)
   -- Written directly rather than shelled out to `echo ... >> README.md`. That
   -- ran through a shell with the repository name interpolated unescaped, so a
   -- name containing a quote or a metacharacter could run something else.
-  vim.fn.writefile({ '# ' .. github_repository_name }, 'README.md', 'a')
+  -- Checked, so a readonly directory or a permissions problem is reported here
+  -- rather than surfacing as a confusing `git add` failure two steps later.
+  if vim.fn.writefile({ '# ' .. github_repository_name }, 'README.md', 'a') ~= 0 then
+    return agitate_error.throw('core.repo.Init -- Error: could not write README.md')
+  end
   -- Run through git directly rather than `:G`. Every one of these
   -- interpolated a value into an Ex command line: the commit message is user
   -- configured and a `"` in it broke the quoting, while `|` in any of them is

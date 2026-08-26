@@ -56,6 +56,10 @@ describe('util', function()
       assert.are.equal('git@github.com:octocat/hello.git', util.build_github_remote_url('octocat', 'hello', 'ssh'))
     end)
 
+    it('rejects an unrecognised protocol instead of assuming https', function()
+      assert.is_false(pcall(util.build_github_remote_url, 'octocat', 'hello', 'htps'))
+    end)
+
     it('always ends in .git', function()
       for _, protocol in ipairs({ 'https', 'ssh' }) do
         assert.is_truthy(util.build_github_remote_url('octocat', 'hello', protocol):find('%.git$'))
