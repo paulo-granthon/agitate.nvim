@@ -31,7 +31,10 @@ local http = http_or_err
 ---@param response HttpResponse The response that failed
 ---@return string
 function M.describe_failure(action, response)
-  local body = response.body or {}
+  -- A JSON body is usually an object, but a proxy or a malformed endpoint can
+  -- return a bare number or string, and indexing one of those throws while
+  -- trying to format the very error being reported.
+  local body = type(response.body) == 'table' and response.body or {}
   local reasons = {}
 
   if body.message then
