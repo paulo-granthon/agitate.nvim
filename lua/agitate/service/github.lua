@@ -277,4 +277,114 @@ function M.create_comment(access_token, owner, repository, number, body, callbac
   }, 'comment on `' .. owner .. '/' .. repository .. '#' .. number .. '`', 201, callback)
 end
 
+---Lists the issues of a repository.
+---
+---GitHub's issues endpoint also returns pull requests, which is a long
+---standing quirk of the API rather than something the caller asked for. Any
+---entry carrying a `pull_request` key is one, and is filtered out here so an
+---issue list is only issues.
+---@param access_token string
+---@param owner string
+---@param repository string
+---@param state string `open`, `closed` or `all`
+---@param callback fun(ok: boolean, result: table[]|AgitateError)
+function M.list_issues(access_token, owner, repository, state, callback)
+  M.get_all(
+    access_token,
+    'repos/' .. owner .. '/' .. repository .. '/issues?state=' .. state,
+    'list the issues of `' .. owner .. '/' .. repository .. '`',
+    function(list_ok, result)
+      if not list_ok then
+        return callback(false, result)
+      end
+
+      local issues = {}
+
+      for _, entry in ipairs(result) do
+        if not entry.pull_request then
+          issues[#issues + 1] = entry
+        end
+      end
+
+      callback(true, issues)
+    end
+  )
+end
+
+---Fetches a single issue.
+---@param access_token string
+---@param owner string
+---@param repository string
+---@param number number
+---@param callback fun(ok: boolean, result: table|AgitateError)
+function M.get_issue(access_token, owner, repository, number, callback)
+  M.get(access_token, 'repos/' .. owner .. '/' .. repository .. '/issues/' .. number, 'read issue #' .. number, function(read_ok, result)
+    if not read_ok then
+      return callback(false, result)
+    end
+
+    -- A 200 guarantees valid JSON, not an object. Passing a decoded string or
+    -- boolean through would defer the failure to the renderer, which indexes
+    -- `title`, `state` and `user`.
+    if type(result) ~= 'table' then
+      return callback(false, { message = 'service.github.get_issue -- Error: expected an object for issue #' .. number .. '.' })
+    end
+
+    callback(true, result)
+  end)
+end
+
+---Opens a new issue.
+---@param access_token string
+---@param owner string
+---@param repository string
+---@param issue table `{ title = string, body = string }`
+---@param callback fun(ok: boolean, result: table|AgitateError)
+function M.create_issue(access_token, owner, repository, issue, callback)
+  M.call(
+    access_token,
+    {
+      path = 'repos/' .. owner .. '/' .. repository .. '/issues',
+      method = 'POST',
+      body = { title = issue.title, body = issue.body },
+    },
+    'open an issue on `' .. owner .. '/' .. repository .. '`',
+    201,
+    function(created_ok, result)
+      if not created_ok then
+        return callback(false, result)
+      end
+
+      -- The caller reports the new issue by concatenating both of these, so a
+      -- success missing either would crash while announcing itself.
+      -- Type checked: the transport allows any JSON type, so a valid body that
+      -- decoded to a string or a boolean would raise on the index rather than be
+      -- reported as the malformed success it is. `create_repository` already does
+      -- this; the two are the same check.
+      if type(result) ~= 'table' or not result.number or not result.html_url then
+        return callback(false, {
+          message = 'service.github.create_issue -- Error: GitHub reported success but returned no `number` or `html_url`.',
+        })
+      end
+
+      callback(true, result)
+    end
+  )
+end
+
+---Opens or closes an issue.
+---@param access_token string
+---@param owner string
+---@param repository string
+---@param number number
+---@param state string `open` or `closed`
+---@param callback fun(ok: boolean, result: table|AgitateError)
+function M.set_issue_state(access_token, owner, repository, number, state, callback)
+  M.call(access_token, {
+    path = 'repos/' .. owner .. '/' .. repository .. '/issues/' .. number,
+    method = 'PATCH',
+    body = { state = state },
+  }, (state == 'closed' and 'close' or 'reopen') .. ' issue #' .. number, 200, callback)
+end
+
 return M

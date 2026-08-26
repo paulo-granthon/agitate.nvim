@@ -28,7 +28,6 @@ describe('service.github', function()
   after_each(function()
     http.request = original_request
   end)
-
   describe('describe_failure', function()
     it('surfaces both the top level message and the field level reason', function()
       local raw, body = fixture('repo_create_error')
@@ -230,6 +229,7 @@ describe('service.github', function()
       assert.is_truthy(result.message:find('no `html_url`', 1, true))
     end)
   end)
+
   describe('get_all', function()
     ---Answers each request with the next canned page.
     local function respond_with_pages(pages)
@@ -342,6 +342,114 @@ describe('service.github', function()
 
       assert.is_truthy(captured_request.url:find('repos/acme/thing/issues/9/comments', 1, true))
       assert.are.equal('token', captured_request.token)
+    end)
+  end)
+
+  describe('list_issues', function()
+    -- GitHub's issues endpoint also returns pull requests. Any entry with a
+    -- `pull_request` key is one, and an issue list showing them would be wrong.
+    it('filters out pull requests', function()
+      local body = {
+        { number = 1, title = 'A real issue' },
+        { number = 2, title = 'A pull request', pull_request = { url = 'https://api.github.com/x' } },
+        { number = 3, title = 'Another issue' },
+      }
+
+      -- `raw` derived from `body` rather than left as `[]`: it is only used in
+      -- error messages today, but a fixture that disagrees with itself is a
+      -- trap for whatever reads it next.
+      respond_with(true, { status = 200, raw = vim.json.encode(body), body = body })
+
+      local result
+      github.list_issues('token', 'acme', 'thing', 'open', function(_, value)
+        result = value
+      end)
+
+      assert.are.equal(2, #result)
+      assert.are.equal(1, result[1].number)
+      assert.are.equal(3, result[2].number)
+    end)
+
+    it('requests the given state and pages the results', function()
+      respond_with(true, { status = 200, body = {}, raw = '[]' })
+
+      github.list_issues('token', 'acme', 'thing', 'closed', function() end)
+
+      assert.is_truthy(captured_request.url:find('state=closed', 1, true))
+      assert.is_truthy(captured_request.url:find('repos/acme/thing/issues', 1, true))
+      assert.is_truthy(captured_request.url:find('per_page=100&page=1', 1, true))
+    end)
+
+    it('passes a failure through without filtering it', function()
+      respond_with(true, { status = 404, body = { message = 'Not Found' }, raw = '{}' })
+
+      local list_ok, result
+      github.list_issues('token', 'acme', 'thing', 'open', function(value_ok, value)
+        list_ok, result = value_ok, value
+      end)
+
+      assert.is_false(list_ok)
+      assert.is_truthy(result.message:find('Not Found', 1, true))
+    end)
+  end)
+
+  describe('create_issue', function()
+    it('posts the title and body', function()
+      -- A realistic success shape. Without `html_url` the service treats the
+      -- response as malformed, so the assertions below would have been
+      -- checking the request of a call that reported failure.
+      respond_with(true, { status = 201, body = { number = 5, html_url = 'https://github.com/acme/thing/issues/5' }, raw = '{}' })
+
+      local created_ok
+      github.create_issue('token', 'acme', 'thing', { title = 'Fix it', body = 'Please.' }, function(value_ok)
+        created_ok = value_ok
+      end)
+
+      assert.is_true(created_ok)
+
+      assert.are.equal('POST', captured_request.method)
+      assert.are.equal('https://api.github.com/repos/acme/thing/issues', captured_request.url)
+      assert.are.same({ title = 'Fix it', body = 'Please.' }, captured_request.body)
+    end)
+
+    -- The caller announces the new issue by concatenating both of these, so a
+    -- success missing either would crash while reporting itself.
+    it('rejects a success that carries no number or html_url', function()
+      respond_with(true, { status = 201, body = { title = 'Fix it' }, raw = '{}' })
+
+      local created_ok, result
+      github.create_issue('token', 'acme', 'thing', { title = 'Fix it', body = '' }, function(value_ok, value)
+        created_ok, result = value_ok, value
+      end)
+
+      assert.is_false(created_ok)
+      assert.is_truthy(result.message:find('no `number` or `html_url`', 1, true))
+    end)
+  end)
+
+  describe('set_issue_state', function()
+    it('patches the state', function()
+      respond_with(true, { status = 200, body = {}, raw = '{}' })
+
+      github.set_issue_state('token', 'acme', 'thing', 7, 'closed', function() end)
+
+      assert.are.equal('PATCH', captured_request.method)
+      assert.are.equal('https://api.github.com/repos/acme/thing/issues/7', captured_request.url)
+      assert.are.same({ state = 'closed' }, captured_request.body)
+    end)
+  end)
+
+  describe('create_comment', function()
+    -- GitHub models a pull request as an issue for commenting, which is why
+    -- the path says `issues` even for a pull request number.
+    it('posts to the issues comments endpoint', function()
+      respond_with(true, { status = 201, body = {}, raw = '{}' })
+
+      github.create_comment('token', 'acme', 'thing', 9, 'Looks good.', function() end)
+
+      assert.are.equal('POST', captured_request.method)
+      assert.are.equal('https://api.github.com/repos/acme/thing/issues/9/comments', captured_request.url)
+      assert.are.same({ body = 'Looks good.' }, captured_request.body)
     end)
   end)
 end)
