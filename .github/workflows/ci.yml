@@ -100,7 +100,11 @@ jobs:
               exit $status
             fi
 
-            echo "::warning::test attempt $attempt timed out after 120s, retrying"
+            if [ "$attempt" -lt 2 ]; then
+              echo "::warning::test attempt $attempt timed out after 120s, retrying"
+            else
+              echo "::warning::test attempt $attempt timed out after 120s"
+            fi
           done
 
           echo "::error::tests timed out on every attempt"
