@@ -155,11 +155,10 @@ function M.Init(optional_parameters)
     return agitate_error.throw('core.repo.Init -- Error: `repo.init.remote_protocol` expects `https` or `ssh`, got `' .. tostring(protocol) .. '`')
   end
 
-  -- Written directly rather than shelled out to `echo ... >> README.md`. That
-  -- ran through a shell with the repository name interpolated unescaped, so a
-  -- name containing a quote or a metacharacter could run something else.
-  -- Checked, so a readonly directory or a permissions problem is reported here
-  -- rather than surfacing as a confusing `git add` failure two steps later.
+  -- Written directly rather than shelled out to `echo ... >> README.md`, which
+  -- ran through a shell with the repository name interpolated unescaped. The
+  -- result is checked, so a readonly directory is reported here rather than
+  -- surfacing as a confusing `git add` failure two steps later.
   if vim.fn.writefile({ '# ' .. github_repository_name }, 'README.md', 'a') ~= 0 then
     return agitate_error.throw('core.repo.Init -- Error: could not write README.md')
   end

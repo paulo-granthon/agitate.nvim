@@ -63,8 +63,9 @@ function M.build_github_remote_url(username, repository_name, protocol)
   end
 
   -- Only nil means "use the default". Treating every unrecognised value as
-  -- https turned a typo into a silently wrong remote for any caller that does
-  -- not validate first, which is every caller except `core.repo.Init`.
+  -- https would turn a typo into a silently wrong remote. `core.repo.Init`
+  -- validates before calling, so this guards the helper itself rather than
+  -- that one path.
   if protocol ~= nil and protocol ~= 'https' then
     error('util.build_github_remote_url -- Error: protocol expects `https` or `ssh`, got `' .. tostring(protocol) .. '`', 0)
   end
