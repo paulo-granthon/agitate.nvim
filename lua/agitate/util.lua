@@ -14,7 +14,7 @@ end
 ---@field skip? number The number of lines to skip before constructing the table
 
 ---Flattens a table of strings into a single space separated string
----@param lines table the table to flatten
+---@param lines string[] the lines to flatten
 ---@param opts? FlattenTableOptions the optional options table
 ---@return string Flattened The joined lines
 function M.flatten_table(lines, opts)
@@ -109,6 +109,20 @@ function M.origin_repository()
   end
 
   return M.parse_github_remote(output[1])
+end
+
+---Percent encodes a string for use as a single URL path segment.
+---
+---Leaves the unreserved set alone and encodes everything else. GitHub has
+---template names such as `C++`, and a name containing `#` or a space would
+---otherwise change which endpoint the request reaches rather than failing
+---visibly.
+---@param segment string
+---@return string
+function M.encode_path_segment(segment)
+  return (segment:gsub('[^%w%-%_%.%~]', function(character)
+    return string.format('%%%02X', string.byte(character))
+  end))
 end
 
 ---Opens a URL in the user's browser.
