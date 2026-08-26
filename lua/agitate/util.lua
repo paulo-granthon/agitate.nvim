@@ -123,9 +123,14 @@ end
 ---branch name to report.
 ---@return string|nil
 function M.current_branch()
-  local output = vim.fn.systemlist({ 'git', 'rev-parse', '--abbrev-ref', 'HEAD' })
+  -- `symbolic-ref` rather than `rev-parse --abbrev-ref HEAD`. The latter exits
+  -- 128 on an unborn branch, so a freshly initialised repository reported no
+  -- branch even though it plainly has one checked out. `symbolic-ref` answers
+  -- from the ref itself, so it works before the first commit, and still exits
+  -- non-zero on a detached HEAD, which is the case that genuinely has none.
+  local output = vim.fn.systemlist({ 'git', 'symbolic-ref', '--short', '--quiet', 'HEAD' })
 
-  if vim.v.shell_error ~= 0 or not output[1] or output[1] == '' or output[1] == 'HEAD' then
+  if vim.v.shell_error ~= 0 or not output[1] or output[1] == '' then
     return nil
   end
 

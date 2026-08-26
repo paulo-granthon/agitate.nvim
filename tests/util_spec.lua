@@ -217,6 +217,23 @@ describe('util', function()
       end)
     end)
 
+    -- `rev-parse --abbrev-ref HEAD` exits 128 before the first commit, so a
+    -- freshly initialised repository reported no branch despite having one.
+    it('reports the branch of a repository with no commits yet', function()
+      local previous = vim.fn.getcwd()
+      local directory = vim.fn.tempname()
+
+      vim.fn.mkdir(directory, 'p')
+      vim.fn.system({ 'git', '-C', directory, 'init', '-b', 'trunk' })
+      vim.fn.chdir(directory)
+
+      local name = util.current_branch()
+
+      vim.fn.chdir(previous)
+
+      assert.are.equal('trunk', name)
+    end)
+
     it('returns nil outside a repository', function()
       local previous = vim.fn.getcwd()
       local directory = vim.fn.tempname()
