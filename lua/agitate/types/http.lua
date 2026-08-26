@@ -6,5 +6,7 @@
 
 ---@class HttpResponse
 ---@field status number The HTTP status code
----@field body table|nil The decoded JSON body, or `nil` if the body was not JSON
+---@field body any|nil The decoded JSON body, or `nil` if the body was not JSON.
+---Any JSON type, not only an object: a bare string, number or boolean decodes
+---to the matching Lua value, which is why callers type check before indexing.
 ---@field raw string The undecoded response body
