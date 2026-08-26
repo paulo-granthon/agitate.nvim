@@ -69,7 +69,13 @@ function M.post_new_repo(access_token, repository, is_private, path)
   local decode_ok, json_decoded = pcall(vim.json.decode, repo_json)
 
   if not decode_ok then
-    return false, agitate_error.unhandled('service.github.post_new_repo')
+    return false,
+      {
+        message = 'service.github.post_new_repo -- Error: could not decode the response.\n'
+          .. tostring(json_decoded)
+          .. '\nResponse: '
+          .. flattened_github_response,
+      }
   end
 
   -- check if empty
@@ -123,7 +129,13 @@ function M.get_organization(access_token, org)
   local decode_ok, json_decoded = pcall(vim.json.decode, org_json)
 
   if not decode_ok then
-    return false, agitate_error.unhandled('service.github.get_organization')
+    return false,
+      {
+        message = 'service.github.get_organization -- Error: could not decode the response.\n'
+          .. tostring(json_decoded)
+          .. '\nResponse: '
+          .. flattened_github_response,
+      }
   end
 
   if json_decoded == nil or json_decoded == '' then
