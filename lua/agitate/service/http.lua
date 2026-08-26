@@ -76,6 +76,11 @@ function M._build_argv(request)
   }
 
   if request.body ~= nil then
+    -- curl defaults a request body to `application/x-www-form-urlencoded`,
+    -- verified against httpbin. GitHub then reads the JSON as form fields and
+    -- answers "Problems parsing JSON", so the header is not optional.
+    argv[#argv + 1] = '-H'
+    argv[#argv + 1] = 'Content-Type: application/json'
     argv[#argv + 1] = '--data-binary'
     argv[#argv + 1] = vim.json.encode(request.body)
   end
