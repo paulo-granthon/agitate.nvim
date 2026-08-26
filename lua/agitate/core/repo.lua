@@ -156,12 +156,30 @@ function M.Init(optional_parameters)
   -- ran through a shell with the repository name interpolated unescaped, so a
   -- name containing a quote or a metacharacter could run something else.
   vim.fn.writefile({ '# ' .. github_repository_name }, 'README.md', 'a')
-  vim.cmd('G init')
-  vim.cmd('G add README.md')
-  vim.cmd('G commit -m "' .. options.repo.init.first_commit_message .. '"')
-  vim.cmd('G branch -M main')
-  vim.cmd('G remote add origin ' .. util.build_github_remote_url(github_username, github_repository_name, protocol))
-  vim.cmd('G push -u origin main')
+  -- Run through git directly rather than `:G`. Every one of these
+  -- interpolated a value into an Ex command line: the commit message is user
+  -- configured and a `"` in it broke the quoting, while `|` in any of them is
+  -- an Ex separator that would run the remainder as a second command. An
+  -- argument vector is parsed by neither Ex nor a shell.
+  local steps = {
+    { 'init' },
+    { 'add', 'README.md' },
+    { 'commit', '-m', options.repo.init.first_commit_message },
+    { 'branch', '-M', 'main' },
+    { 'remote', 'add', 'origin', util.build_github_remote_url(github_username, github_repository_name, protocol) },
+    { 'push', '-u', 'origin', 'main' },
+  }
+
+  for _, step in ipairs(steps) do
+    local command = { 'git' }
+    vim.list_extend(command, step)
+
+    local output = vim.fn.systemlist(command)
+
+    if vim.v.shell_error ~= 0 then
+      return agitate_error.throw('core.repo.Init -- Error: `git ' .. table.concat(step, ' ') .. '` failed.\n' .. table.concat(output, '\n'))
+    end
+  end
 
   -- Open fugitive status window
   if options.repo.init.show_status then
