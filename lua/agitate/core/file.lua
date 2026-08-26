@@ -188,7 +188,10 @@ function M.License(optional_parameters)
   -- Whitespace only counts as absent. The point of substituting the
   -- placeholders is to avoid a LICENSE that names nobody, and `  ` produces
   -- exactly that while looking like a real value.
-  if not author or not author:match('%S') then
+  -- Type checked as well as emptiness checked: a misconfigured options table
+  -- can put a non-string here, and `:match` on one raises rather than
+  -- reporting what is wrong.
+  if type(author) ~= 'string' or not author:match('%S') then
     return agitate_error.throw(
       'core.file.License -- Error: no copyright holder to write.' .. '\nPass `-a`, or set `file.license.author` or `github_username` in your configuration.'
     )
