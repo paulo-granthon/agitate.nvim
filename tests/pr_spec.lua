@@ -93,4 +93,22 @@ describe('core.pr', function()
       assert.is_true(pr._plan_merge(clean({ mergeable_state = 'has_hooks' })).allowed)
     end)
   end)
+  describe('qualified head handling', function()
+    -- Documents the shape the self merge check has to see through: GitHub
+    -- accepts `owner:branch` for a head, so comparing raw strings let
+    -- `acme:main` onto `main` through in acme's own repository.
+    it('strips an owner prefix naming the same owner', function()
+      local owner = 'acme'
+      local stripped = ('acme:main'):gsub('^' .. vim.pesc(owner) .. ':', '')
+
+      assert.are.equal('main', stripped)
+    end)
+
+    it('leaves a different owner qualified', function()
+      local owner = 'acme'
+      local stripped = ('octocat:main'):gsub('^' .. vim.pesc(owner) .. ':', '')
+
+      assert.are.equal('octocat:main', stripped)
+    end)
+  end)
 end)

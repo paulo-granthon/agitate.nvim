@@ -204,8 +204,20 @@ function M.Create(optional_parameters)
       return agitate_error.throw('core.pr.Create -- Error: could not determine the branch to open from. Pass `-H`.')
     end
 
+    ---Strips an `owner:` prefix that names this repository's own owner.
+    ---
+    ---GitHub accepts a qualified head such as `octocat:feature` for a cross
+    ---repository pull request, and tolerates it for a same repository one. The
+    ---self merge check compared the raw string, so `acme:main` onto `main` in
+    ---acme's own repository slipped past it.
+    ---@param reference string
+    ---@return string
+    local function local_branch(reference)
+      return (reference:gsub('^' .. vim.pesc(resolved.owner) .. ':', ''))
+    end
+
     local function compose(base)
-      if head == base then
+      if local_branch(head) == local_branch(base) then
         return agitate_error.throw('core.pr.Create -- Error: the head and base branches are both `' .. base .. '`.')
       end
 
