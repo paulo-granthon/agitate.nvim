@@ -67,10 +67,15 @@ function M.Create(optional_parameters)
     return agitate_error.throw('core.repo.Create -- Error: undefined GitHub username or access token')
   end
 
-  github.is_organization(github_access_token, github_username, function(lookup_ok, is_org)
+  github.is_organization(github_access_token, github_username, function(lookup_ok, result)
     if not lookup_ok then
-      return agitate_error.throw(is_org)
+      return agitate_error.throw(result)
     end
+
+    -- Named only after the error check. The callback's second value is a
+    -- boolean on success and an error object on failure, so calling it
+    -- `is_org` throughout invited reading the error as a truthy answer.
+    local is_org = result
 
     vim.notify(
       (is_private and 'Private r' or 'R')

@@ -12,7 +12,8 @@
 ---
 ---@param flags string[] The declared flags, in positional fill order
 ---@param args string[]|nil The raw arguments, as received from `opts.fargs`
----@return table<string, string> parsed The value found for each declared flag
+---@return table<string, string|nil> parsed The value found for each declared flag,
+---absent for any flag that was not given one
 ---@return string[] leftover Arguments matching no declared flag
 ---@return string[] incomplete Declared flags given without a usable value
 return function(flags, args)

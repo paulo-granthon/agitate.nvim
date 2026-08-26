@@ -147,4 +147,18 @@ describe('util', function()
       assert.are.equal('https://github.com/octocat/hello', util.build_github_html_url('octocat', 'hello'))
     end)
   end)
+  describe('encode_path_segment', function()
+    it('leaves the unreserved set alone', function()
+      assert.are.equal('mit-2.0_a~b', util.encode_path_segment('mit-2.0_a~b'))
+    end)
+
+    -- Verified against the API: both `C++` and `C%2B%2B` resolve, so encoding
+    -- is safe, and a future name with `#` or a space would otherwise change
+    -- which endpoint the request reaches.
+    it('encodes characters that would change the URL', function()
+      assert.are.equal('C%2B%2B', util.encode_path_segment('C++'))
+      assert.are.equal('C%23', util.encode_path_segment('C#'))
+      assert.are.equal('a%20b', util.encode_path_segment('a b'))
+    end)
+  end)
 end)
