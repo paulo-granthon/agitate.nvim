@@ -45,7 +45,9 @@ You can easily verify what the commands are and what they do by looking at the
 - `:AgitateBranchDelete` - Delete a named branch locally and, when it has one,
   its remote counterpart.  
   Takes `-b` for the branch and `-r` for the remote, in that order if you pass
-  them positionally. The branch is required; the remote defaults to `origin`.  
+  them positionally. The branch is required, so calling the command with no
+  arguments is an error rather than a shorthand; the remote defaults to
+  `origin`.  
   Asks for confirmation first, and offers a force delete for a branch that
   still holds unmerged commits. It will not delete the branch you are on:
   check out another one first, then name it.

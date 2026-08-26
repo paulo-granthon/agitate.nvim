@@ -3,7 +3,7 @@ describe('core.branch', function()
 
   describe('plan_delete', function()
     it('deletes the branch that was asked for', function()
-      local plan = branch.plan_delete('feature', 'main', true)
+      local plan = branch._plan_delete('feature', 'main', true)
 
       assert.is_true(plan.ok)
       assert.are.equal('feature', plan.branch)
@@ -11,13 +11,13 @@ describe('core.branch', function()
     end)
 
     it('skips the remote when the branch has no counterpart there', function()
-      assert.is_false(branch.plan_delete('feature', 'main', false).delete_remote)
+      assert.is_false(branch._plan_delete('feature', 'main', false).delete_remote)
     end)
 
     -- git itself refuses this, and switching away on the user's behalf would be
     -- a surprising side effect of asking to delete something.
     it('refuses to delete the current branch', function()
-      local plan = branch.plan_delete('main', 'main', true)
+      local plan = branch._plan_delete('main', 'main', true)
 
       assert.is_false(plan.ok)
       assert.is_truthy(plan.reason:find('current branch', 1, true))
@@ -27,13 +27,13 @@ describe('core.branch', function()
     -- to delete the current branch made the no argument form unusable.
     it('refuses when no branch is named', function()
       for _, given in ipairs({ '' }) do
-        local plan = branch.plan_delete(given, 'main', false)
+        local plan = branch._plan_delete(given, 'main', false)
 
         assert.is_false(plan.ok)
         assert.is_truthy(plan.reason:find('no branch name given', 1, true))
       end
 
-      local plan = branch.plan_delete(nil, 'main', false)
+      local plan = branch._plan_delete(nil, 'main', false)
 
       assert.is_false(plan.ok)
       assert.is_truthy(plan.reason:find('no branch name given', 1, true))
@@ -42,7 +42,7 @@ describe('core.branch', function()
 
   describe('confirm_prompt', function()
     it('names both targets when the remote branch exists', function()
-      local prompt = branch.confirm_prompt('feature', true, 'origin')
+      local prompt = branch._confirm_prompt('feature', true, 'origin')
 
       assert.is_truthy(prompt:find('feature', 1, true))
       assert.is_truthy(prompt:find('origin', 1, true))
@@ -50,7 +50,7 @@ describe('core.branch', function()
     end)
 
     it('says the remote is untouched when there is nothing there', function()
-      local prompt = branch.confirm_prompt('feature', false, 'origin')
+      local prompt = branch._confirm_prompt('feature', false, 'origin')
 
       assert.is_truthy(prompt:find('no counterpart', 1, true))
     end)
@@ -100,13 +100,13 @@ describe('core.branch', function()
 
     it('reports the checked out branch', function()
       in_repository('trunk', function()
-        assert.are.equal('trunk', branch.current_branch())
+        assert.are.equal('trunk', branch._current_branch())
       end)
     end)
 
     it('reports a branch whose name contains slashes', function()
       in_repository('feature/nested/name', function()
-        assert.are.equal('feature/nested/name', branch.current_branch())
+        assert.are.equal('feature/nested/name', branch._current_branch())
       end)
     end)
 
@@ -117,7 +117,7 @@ describe('core.branch', function()
       vim.fn.mkdir(directory, 'p')
       vim.fn.chdir(directory)
 
-      local name = branch.current_branch()
+      local name = branch._current_branch()
 
       vim.fn.chdir(previous)
 
@@ -127,7 +127,7 @@ describe('core.branch', function()
 
   describe('exists_on_remote', function()
     it('is false for a branch that does not exist', function()
-      assert.is_false(branch.exists_on_remote('origin', 'a-branch-that-should-never-exist'))
+      assert.is_false(branch._exists_on_remote('origin', 'a-branch-that-should-never-exist'))
     end)
   end)
   describe('git', function()
@@ -164,10 +164,10 @@ describe('core.branch', function()
 
     it('reports success and failure through its second return value', function()
       in_repository(function()
-        local _, ok = branch.git({ 'rev-parse', 'HEAD' })
+        local _, ok = branch._git({ 'rev-parse', 'HEAD' })
         assert.is_true(ok)
 
-        local output, failed = branch.git({ 'branch', '-d', 'no-such-branch' })
+        local output, failed = branch._git({ 'branch', '-d', 'no-such-branch' })
         assert.is_false(failed)
         assert.is_true(#output > 0)
       end)
@@ -178,13 +178,13 @@ describe('core.branch', function()
     -- command, so a branch named `topic|qall` quit Neovim on delete.
     it('handles a ref containing a pipe as one argument', function()
       in_repository(function()
-        local _, created = branch.git({ 'branch', 'topic|qall' })
+        local _, created = branch._git({ 'branch', 'topic|qall' })
         assert.is_true(created)
 
-        local _, deleted = branch.git({ 'branch', '-D', 'topic|qall' })
+        local _, deleted = branch._git({ 'branch', '-D', 'topic|qall' })
         assert.is_true(deleted)
 
-        local _, gone = branch.git({ 'rev-parse', '--verify', '--quiet', 'refs/heads/topic|qall' })
+        local _, gone = branch._git({ 'rev-parse', '--verify', '--quiet', 'refs/heads/topic|qall' })
         assert.is_false(gone)
       end)
     end)
@@ -193,10 +193,10 @@ describe('core.branch', function()
     -- refusing here the gate would silently open.
     it('refuses to delete an unmerged branch without force', function()
       in_repository(function()
-        branch.git({ 'checkout', '-b', 'unmerged' })
+        branch._git({ 'checkout', '-b', 'unmerged' })
         vim.fn.writefile({ 'work' }, 'work.txt')
-        branch.git({ 'add', 'work.txt' })
-        branch.git({
+        branch._git({ 'add', 'work.txt' })
+        branch._git({
           '-c',
           'user.name=agitate tests',
           '-c',
@@ -206,12 +206,12 @@ describe('core.branch', function()
           'work',
           '--no-gpg-sign',
         })
-        branch.git({ 'checkout', 'main' })
+        branch._git({ 'checkout', 'main' })
 
-        local _, safe = branch.git({ 'branch', '-d', 'unmerged' })
+        local _, safe = branch._git({ 'branch', '-d', 'unmerged' })
         assert.is_false(safe)
 
-        local _, forced = branch.git({ 'branch', '-D', 'unmerged' })
+        local _, forced = branch._git({ 'branch', '-D', 'unmerged' })
         assert.is_true(forced)
       end)
     end)

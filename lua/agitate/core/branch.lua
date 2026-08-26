@@ -14,13 +14,13 @@ function M.CreateCheckoutAndPush(branch_name)
     return vim.notify('core.branch.CreateCheckoutAndPush -- Error: no branch name provided', vim.log.levels.ERROR)
   end
 
-  local checkout_output, checkout_ok = M.git({ 'checkout', '-b', branch_name })
+  local checkout_output, checkout_ok = M._git({ 'checkout', '-b', branch_name })
 
   if not checkout_ok then
     return agitate_error.throw('core.branch.CreateCheckoutAndPush -- Error: could not create `' .. branch_name .. '`.\n' .. table.concat(checkout_output, '\n'))
   end
 
-  local push_output, push_ok = M.git({ 'push', '-u', 'origin', branch_name })
+  local push_output, push_ok = M._git({ 'push', '-u', 'origin', branch_name })
 
   if not push_ok then
     return agitate_error.throw(
@@ -38,7 +38,7 @@ end
 ---@param argv string[] The git command, without the leading `git`
 ---@return string[] output
 ---@return boolean ok
-function M.git(argv)
+function M._git(argv)
   local command = { 'git' }
   vim.list_extend(command, argv)
 
@@ -50,8 +50,8 @@ end
 ---Returns the name of the currently checked out branch, or nil in a detached
 ---HEAD or outside a repository.
 ---@return string|nil
-function M.current_branch()
-  local output, git_ok = M.git({ 'rev-parse', '--abbrev-ref', 'HEAD' })
+function M._current_branch()
+  local output, git_ok = M._git({ 'rev-parse', '--abbrev-ref', 'HEAD' })
 
   if not git_ok or not output[1] or output[1] == '' or output[1] == 'HEAD' then
     return nil
@@ -68,8 +68,8 @@ end
 ---@param remote string
 ---@param branch string
 ---@return boolean
-function M.exists_on_remote(remote, branch)
-  local _, git_ok = M.git({ 'rev-parse', '--verify', '--quiet', 'refs/remotes/' .. remote .. '/' .. branch })
+function M._exists_on_remote(remote, branch)
+  local _, git_ok = M._git({ 'rev-parse', '--verify', '--quiet', 'refs/remotes/' .. remote .. '/' .. branch })
 
   return git_ok
 end
@@ -82,16 +82,16 @@ end
 ---@param current string|nil The currently checked out branch
 ---@param has_remote boolean Whether the branch exists on the remote
 ---@return table Plan `{ ok = false, reason = string }` or `{ ok = true, branch = string, delete_remote = boolean }`
-function M.plan_delete(branch, current, has_remote)
+function M._plan_delete(branch, current, has_remote)
   -- Deliberately no default. Defaulting to the current branch and then
-  -- refusing to delete the current branch meant the no argument form could
-  -- never succeed, while the README advertised it as the common case.
+  -- refusing to delete the current branch would make the no argument form
+  -- impossible to satisfy, so the branch is required and the README says so.
   if not branch or branch == '' then
     return { ok = false, reason = 'no branch name given. Pass `-b <branch>`, or the branch name as the first argument.' }
   end
 
-  -- git refuses to delete the branch that is checked out, and doing it for the
-  -- user by switching away would be a surprising side effect of a delete.
+  -- git refuses to delete the branch that is checked out, and switching away
+  -- on the user's behalf would be a surprising side effect of a delete.
   if branch == current then
     return {
       ok = false,
@@ -107,7 +107,7 @@ end
 ---@param delete_remote boolean
 ---@param remote string
 ---@return string
-function M.confirm_prompt(branch, delete_remote, remote)
+function M._confirm_prompt(branch, delete_remote, remote)
   if delete_remote then
     return 'Delete branch `' .. branch .. '` locally and from `' .. remote .. '`?'
   end
@@ -135,20 +135,20 @@ function M.Delete(optional_parameters)
 
   local remote = parameters['-r'] or 'origin'
   local requested = parameters['-b']
-  local current = M.current_branch()
+  local current = M._current_branch()
 
-  local plan = M.plan_delete(requested, current, false)
+  local plan = M._plan_delete(requested, current, false)
 
   if not plan.ok then
     return agitate_error.throw('core.branch.Delete -- Error: ' .. plan.reason)
   end
 
-  plan.delete_remote = M.exists_on_remote(remote, plan.branch)
+  plan.delete_remote = M._exists_on_remote(remote, plan.branch)
 
   -- Deleting a branch discards work that may not exist anywhere else, so the
   -- user confirms before anything is run. `-d` is the safe form and refuses to
   -- drop unmerged commits; forcing is a separate, explicit choice.
-  local choice = vim.fn.confirm(M.confirm_prompt(plan.branch, plan.delete_remote, remote), '&Delete\n&Force delete\n&Cancel', 3, 'Question')
+  local choice = vim.fn.confirm(M._confirm_prompt(plan.branch, plan.delete_remote, remote), '&Delete\n&Force delete\n&Cancel', 3, 'Question')
 
   if choice ~= 1 and choice ~= 2 then
     return vim.notify('Branch deletion cancelled.', vim.log.levels.INFO)
@@ -159,7 +159,7 @@ function M.Delete(optional_parameters)
   -- separator: `G branch -d topic|qall` deletes `topic` and then quits Neovim.
   -- An argument vector is never parsed as Ex or by a shell, and it also
   -- returns an exit status, which the remote deletion below depends on.
-  local delete_output, delete_ok = M.git({ 'branch', choice == 2 and '-D' or '-d', plan.branch })
+  local delete_output, delete_ok = M._git({ 'branch', choice == 2 and '-D' or '-d', plan.branch })
 
   if not delete_ok then
     return agitate_error.throw('core.branch.Delete -- Error: could not delete `' .. plan.branch .. '` locally.\n' .. table.concat(delete_output, '\n'))
@@ -174,7 +174,7 @@ function M.Delete(optional_parameters)
   -- Only reached once the local deletion actually succeeded. `-d` refuses an
   -- unmerged branch, and deleting the remote copy after that refusal would
   -- destroy the only remaining reference to that work.
-  local push_output, push_ok = M.git({ 'push', remote, '--delete', plan.branch })
+  local push_output, push_ok = M._git({ 'push', remote, '--delete', plan.branch })
 
   if not push_ok then
     return agitate_error.throw(
