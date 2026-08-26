@@ -43,8 +43,28 @@ end
 ---@param argv string[] The git command, without the leading `git`
 ---@return string[] output
 ---@return boolean ok
+---Returns the directory git should run in.
+---
+---The current buffer's directory, not the working directory. Fugitive resolved
+---the repository from the buffer, so replacing `:G` with a direct call changed
+---which repository these commands act on whenever `:cd` had moved elsewhere.
+---Falls back to the working directory for a buffer with no file, such as the
+---list and editor scratch buffers.
+---@return string
+local function working_directory()
+  local buffer_path = vim.api.nvim_buf_get_name(0)
+
+  if buffer_path == '' then
+    return vim.fn.getcwd()
+  end
+
+  local directory = vim.fn.fnamemodify(buffer_path, ':p:h')
+
+  return vim.fn.isdirectory(directory) == 1 and directory or vim.fn.getcwd()
+end
+
 function M._git(argv)
-  local command = { 'git' }
+  local command = { 'git', '-C', working_directory() }
   vim.list_extend(command, argv)
 
   -- `vim.system` rather than `systemlist`, which captures stdout only. git

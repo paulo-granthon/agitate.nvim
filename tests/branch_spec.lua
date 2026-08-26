@@ -226,4 +226,68 @@ describe('core.branch', function()
       end)
     end)
   end)
+  describe('repository resolution', function()
+    ---Builds a repository on `branch_name` containing one committed file.
+    local function repository(branch_name)
+      local directory = vim.fn.tempname()
+
+      vim.fn.mkdir(directory, 'p')
+      vim.fn.system({ 'git', '-C', directory, 'init', '-b', branch_name })
+      vim.fn.writefile({ 'x' }, directory .. '/file.txt')
+      vim.fn.system({ 'git', '-C', directory, 'add', 'file.txt' })
+      vim.fn.system({
+        'git',
+        '-C',
+        directory,
+        '-c',
+        'user.name=agitate tests',
+        '-c',
+        'user.email=tests@agitate.invalid',
+        'commit',
+        '-m',
+        'init',
+        '--no-gpg-sign',
+      })
+
+      return directory
+    end
+
+    -- Fugitive resolved the repository from the buffer. Running git directly
+    -- resolved it from the working directory instead, so with `:cd` pointing
+    -- somewhere else these commands acted on the wrong repository entirely.
+    it("uses the current buffer's repository, not the working directory", function()
+      local elsewhere = repository('cwd-repo')
+      local buffer_repo = repository('buffer-repo')
+
+      local previous_cwd = vim.fn.getcwd()
+      local previous_buffer = vim.api.nvim_get_current_buf()
+
+      vim.fn.chdir(elsewhere)
+      vim.cmd('edit ' .. vim.fn.fnameescape(buffer_repo .. '/file.txt'))
+
+      local resolved = branch._current_branch()
+
+      vim.api.nvim_set_current_buf(previous_buffer)
+      vim.fn.chdir(previous_cwd)
+
+      assert.are.equal('buffer-repo', resolved)
+    end)
+
+    it('falls back to the working directory for a buffer with no file', function()
+      local directory = repository('scratch-cwd')
+
+      local previous_cwd = vim.fn.getcwd()
+      local previous_buffer = vim.api.nvim_get_current_buf()
+
+      vim.fn.chdir(directory)
+      vim.api.nvim_set_current_buf(vim.api.nvim_create_buf(false, true))
+
+      local resolved = branch._current_branch()
+
+      vim.api.nvim_set_current_buf(previous_buffer)
+      vim.fn.chdir(previous_cwd)
+
+      assert.are.equal('scratch-cwd', resolved)
+    end)
+  end)
 end)
