@@ -47,7 +47,7 @@ service/   http.lua  (transport)
            github.lua (one function per endpoint, built on http)
 ui/        buffer.lua (scratch editor), list.lua (result buffers)
 util/      shell, url and string helpers
-types/     LuaLS annotations only, no runtime
+types/     LuaLS annotations; required at load only so a missing file fails loudly
 ```
 
 Dependency direction is one way: `api -> core -> service -> util`. Nothing in
