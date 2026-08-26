@@ -122,7 +122,9 @@ describe('ui.list', function()
         { number = 2, title = 'B', state = 'ré' },
       })
 
-      assert.are.equal(vim.fn.strdisplaywidth(lines[1]:gsub('A$', '')), vim.fn.strdisplaywidth(lines[2]:gsub('B$', '')))
+      -- `gsub` returns the string and a count, and an unparenthesised call
+      -- passes that count on as `strdisplaywidth`'s second argument.
+      assert.are.equal(vim.fn.strdisplaywidth((lines[1]:gsub('A$', ''))), vim.fn.strdisplaywidth((lines[2]:gsub('B$', ''))))
     end)
 
     it('returns no lines for no entries', function()
