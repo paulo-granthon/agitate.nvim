@@ -90,6 +90,25 @@ token containing a quote or backslash cannot terminate the entry.
 The request body is *not* secret and stays in argv, where it needs no escaping
 at all.
 
+## Naming
+
+Two module kinds, two conventions. Worth stating, because review has queried
+the mix more than once and neither half explains the other.
+
+**Command modules** (`core/*`) expose PascalCase entry points, one per user
+command: `Create`, `Init`, `Delete`, `Merge`. Anything else they export is an
+implementation detail reachable from a spec and carries an underscore:
+`_plan_merge`, `_plan_delete`, `_comment`.
+
+**Library modules** (`service/*`, `ui/*`, `util`) expose snake_case functions
+as their ordinary public API: `describe_failure`, `origin_repository`,
+`render`. These are called by other modules, never by users, so there is no
+command surface to distinguish. An underscore still means test seam, as in
+`http._build_argv`.
+
+Adding a function: if a user invokes it, PascalCase in `core`. If only Agitate
+calls it, snake_case in a library module. If only a spec calls it, prefix it.
+
 ## Error handling
 
 One shape everywhere. `AgitateError` is `{ message = string }`.
