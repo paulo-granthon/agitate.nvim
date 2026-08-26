@@ -1,13 +1,16 @@
 local M = {}
 
-local ok, error = pcall(require, 'agitate.error')
+local ok, agitate_error = pcall(require, 'agitate.error')
 if not ok then
-  return vim.api.nvim_err_writeln(require('agitate.const.error').import)
+  local message = require('agitate.const.error').import
+  vim.notify(message, vim.log.levels.ERROR)
+  error(message, 0)
 end
 
 local config_ok, config_or_err = pcall(require, 'agitate.config')
 if not config_ok then
-  return error.throw(config_or_err)
+  agitate_error.throw(config_or_err)
+  error(config_or_err, 0)
 end
 
 local config = config_or_err

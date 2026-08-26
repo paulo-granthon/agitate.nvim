@@ -13,20 +13,19 @@ end
 ---@class FlattenTableOptions
 ---@field skip? number The number of lines to skip before constructing the table
 
----Flattens a table of String into a single String
----@param table table the table to flatten
+---Flattens a table of strings into a single space separated string
+---@param lines string[] the lines to flatten
 ---@param opts? FlattenTableOptions the optional options table
-function M.flatten_table(table, opts)
-  local result = ''
+---@return string Flattened The joined lines
+function M.flatten_table(lines, opts)
   local skip = opts and opts.skip or 0
-  for _, line in ipairs(table) do
-    if skip > 0 then
-      skip = skip - 1
-    else
-      result = result .. ' ' .. line
-    end
+  local parts = {}
+
+  for index = skip + 1, #lines do
+    parts[#parts + 1] = lines[index]
   end
-  return result
+
+  return table.concat(parts, ' ')
 end
 
 ---Removes any characters outside of the `json` object in the provided string
@@ -45,7 +44,7 @@ function M.json_lr_trim(input_string)
   end
 
   -- no `json` found
-  return false
+  return false, nil
 end
 
 ---Builds a github html url from the provided username and repository name
@@ -53,7 +52,60 @@ end
 ---@param repository_name string The name of the repository
 ---@return string The GitHub repository html url
 function M.build_github_html_url(username, repository_name)
-  return '`https://github.com/' .. username .. '/' .. repository_name .. '/`'
+  return 'https://github.com/' .. username .. '/' .. repository_name
+end
+
+---Returns the directory git commands should run in.
+---
+---The current buffer's directory, not the process working directory. Fugitive
+---resolved the repository from the buffer, so every direct git call has to do
+---the same or `:cd` silently changes which repository Agitate acts on. Falls
+---back to the working directory for a buffer with no file, which is what the
+---scratch buffers are.
+---@return string
+function M.buffer_directory()
+  local buffer_path = vim.api.nvim_buf_get_name(0)
+
+  if buffer_path == '' then
+    return vim.fn.getcwd()
+  end
+
+  local directory = vim.fn.fnamemodify(buffer_path, ':p:h')
+
+  return vim.fn.isdirectory(directory) == 1 and directory or vim.fn.getcwd()
+end
+
+---Runs a git command in the current buffer's repository.
+---
+---Merges stdout and stderr, because git reports almost every failure on
+---stderr and a caller that only sees stdout reports a failure with no reason.
+---@param argv string[] The git command, without the leading `git`
+---@param directory string|nil Where to run, defaulting to the buffer's directory
+---@return string[] output
+---@return boolean ok
+function M.git(argv, directory)
+  -- `vim.system` arrived in 0.10. Every other Neovim requirement in the plugin
+  -- is stated up front, so this one reports itself rather than surfacing as
+  -- "attempt to call field 'system' (a nil value)" from inside a git call.
+  if type(vim.system) ~= 'function' then
+    return { 'agitate requires Neovim 0.10 or newer for git operations' }, false
+  end
+
+  local command = { 'git', '-C', directory or M.buffer_directory() }
+  vim.list_extend(command, argv)
+
+  local completed = vim.system(command, { text = true }):wait()
+
+  local lines = {}
+  for _, stream in ipairs({ completed.stdout, completed.stderr }) do
+    for _, line in ipairs(vim.split(stream or '', '\n')) do
+      if line ~= '' then
+        lines[#lines + 1] = line
+      end
+    end
+  end
+
+  return lines, completed.code == 0
 end
 
 return M

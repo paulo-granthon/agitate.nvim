@@ -16,4 +16,7 @@ exclude_files = {
 
 files['tests/'] = {
   std = '+busted',
+  -- Specs stub `vim` fields such as `vim.notify` to capture output,
+  -- so the table is writable here even though plugin code may only read it.
+  globals = { 'vim' },
 }

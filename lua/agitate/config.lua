@@ -1,13 +1,16 @@
 local M = {}
 
-local ok, error = pcall(require, 'agitate.error')
+local ok, agitate_error = pcall(require, 'agitate.error')
 if not ok then
-  return vim.api.nvim_err_writeln(require('agitate.const.error').import)
+  local message = require('agitate.const.error').import
+  vim.notify(message, vim.log.levels.ERROR)
+  error(message, 0)
 end
 
 local types_ok, types_or_err = pcall(require, 'agitate.types.config')
 if not types_ok then
-  return error.throw(types_or_err)
+  agitate_error.throw(types_or_err)
+  error(types_or_err, 0)
 end
 
 ---@type Config
@@ -33,7 +36,11 @@ function M.setup(options)
   if api_ok then
     api_or_err.setup()
   else
-    error.throw(api_or_err)
+    -- Raised rather than reported and shrugged off. Without the api module no
+    -- commands exist, so continuing leaves the plugin loaded and inert, which
+    -- is harder to diagnose than a failed setup.
+    agitate_error.throw(api_or_err)
+    error(api_or_err, 0)
   end
 end
 
