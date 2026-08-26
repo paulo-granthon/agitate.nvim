@@ -112,11 +112,17 @@ end
 function M.Visibility(optional_parameters)
   local options = require('agitate.config').options
 
-  local parameters, leftover = parse_args({
+  local parameters, leftover, incomplete = parse_args({
     '-v',
     '-r',
     '-u',
   }, optional_parameters)
+
+  -- Without this, `-u` with no value silently falls back to the `origin`
+  -- defaults, which is the opposite of what the user asked for.
+  if #incomplete > 0 then
+    return agitate_error.throw('core.repo.Visibility -- Error: missing a value for ' .. table.concat(incomplete, ' '))
+  end
 
   if #leftover > 0 then
     return agitate_error.throw('core.repo.Visibility -- Error: unrecognised arguments: ' .. table.concat(leftover, ' '))

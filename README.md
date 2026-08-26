@@ -41,7 +41,7 @@ You can easily verify what the commands are and what they do by looking at the
   repository and `-u` for the owner, in that order if you pass them
   positionally. The repository and owner default to whatever the `origin`
   remote points at, so inside a checkout you only need the visibility. Outside
-  one, or with a remote that is not GitHub, pass `-u` explicitly.  
+  one, or with a remote that is not GitHub, pass both `-u` and `-r`.  
   Making a repository public asks for confirmation first.
 
 #### Branch
