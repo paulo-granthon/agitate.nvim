@@ -43,6 +43,10 @@ function M.post_new_repo(access_token, repository, is_private, path)
     'curl',
     '--silent',
     '--show-error',
+    -- An argv list bypasses the shell, so curl's stderr is otherwise dropped
+    -- and a failed request produced an empty body with no explanation.
+    '--stderr',
+    '-',
     '-H',
     'Authorization: token ' .. access_token,
     '-H',
@@ -105,6 +109,10 @@ function M.get_organization(access_token, org)
     'curl',
     '--silent',
     '--show-error',
+    -- An argv list bypasses the shell, so curl's stderr is otherwise dropped
+    -- and a failed request produced an empty body with no explanation.
+    '--stderr',
+    '-',
     '--location',
     '-H',
     'Authorization: token ' .. access_token,
