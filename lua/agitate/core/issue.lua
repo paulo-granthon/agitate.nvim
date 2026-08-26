@@ -55,7 +55,13 @@ end
 ---@param command string The command name, for the messages
 ---@param callback fun(context: table, parameters: table<string, string>)
 local function prepare(flags, optional_parameters, command, callback)
-  local parameters, leftover = parse_args(flags, optional_parameters)
+  local parameters, leftover, incomplete = parse_args(flags, optional_parameters)
+
+  -- Without this, `:AgitateIssueView -n` reports nothing and falls back to
+  -- the defaults, acting on a different issue than the one being asked for.
+  if #incomplete > 0 then
+    return agitate_error.throw(command .. ' -- Error: missing a value for ' .. table.concat(incomplete, ' '))
+  end
 
   if #leftover > 0 then
     return agitate_error.throw(command .. ' -- Error: unrecognised arguments: ' .. table.concat(leftover, ' '))
