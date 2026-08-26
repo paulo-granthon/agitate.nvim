@@ -41,7 +41,11 @@ function M.setup(options)
   if api_ok then
     api_or_err.setup()
   else
+    -- Raised rather than reported and shrugged off. Without the api module no
+    -- commands exist, so continuing leaves the plugin loaded and inert, which
+    -- is harder to diagnose than a failed setup.
     agitate_error.throw(api_or_err)
+    error(api_or_err, 0)
   end
 end
 
