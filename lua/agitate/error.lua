@@ -50,7 +50,11 @@ function M.describe(err)
   return table.concat(messages, '\n')
 end
 
----Reports the given error to the user, ending the current execution of agitate.nvim
+---Reports the given error to the user.
+---
+---Reports only. It does not abort, so callers `return` it to stop their own
+---execution. The load guards pair it with `error(...)` where the failure has
+---to stop a module from loading.
 ---@param err AgitateError|table|string The error to throw
 function M.throw(err)
   local message = M.describe(err) or M.unhandled('agitate.error.throw').message
