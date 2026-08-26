@@ -78,7 +78,9 @@ function M.call(access_token, request, action, expected, callback)
       return callback(false, { message = M.describe_failure(action, response) })
     end
 
-    if not response.body then
+    -- `== nil` rather than falsey: `false` is valid JSON and decodes to a
+    -- Lua false, which a truthiness test would reject as "not JSON".
+    if response.body == nil then
       return callback(false, { message = 'service.github -- Error: expected JSON from `' .. request.path .. '`.\nRaw response: ' .. response.raw })
     end
 
@@ -118,7 +120,9 @@ function M.is_organization(access_token, name, callback)
     -- treating that as an organization would create the repository under
     -- `orgs/<name>` on the strength of an HTML error page.
     if response.status == 200 then
-      if not response.body then
+      -- `== nil` rather than falsey: `false` is valid JSON and decodes to a
+      -- Lua false, which a truthiness test would reject as "not JSON".
+      if response.body == nil then
         return callback(false, {
           message = 'service.github.is_organization -- Error: expected JSON from the organization lookup.\nRaw response: ' .. response.raw,
         })
