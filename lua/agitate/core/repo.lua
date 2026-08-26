@@ -218,19 +218,13 @@ function M.Init(optional_parameters)
     { 'push', '-u', 'origin', 'main' },
   }
 
+  -- Through `util.git`, which runs in the buffer's repository rather than the
+  -- process working directory and merges stderr, where git puts its reasons.
   for _, step in ipairs(steps) do
-    local command = { 'git' }
-    vim.list_extend(command, step)
+    local output, step_ok = util.git(step)
 
-    -- `vim.system` rather than `systemlist`, which captures stdout only. git
-    -- reports almost every failure on stderr, so a failed step would otherwise
-    -- name the command and explain nothing.
-    local completed = vim.system(command, { text = true }):wait()
-
-    if completed.code ~= 0 then
-      local detail = (completed.stderr ~= nil and completed.stderr ~= '') and completed.stderr or (completed.stdout or '')
-
-      return agitate_error.throw('core.repo.Init -- Error: `git ' .. table.concat(step, ' ') .. '` failed.\n' .. detail)
+    if not step_ok then
+      return agitate_error.throw('core.repo.Init -- Error: `git ' .. table.concat(step, ' ') .. '` failed.\n' .. table.concat(output, '\n'))
     end
   end
 
