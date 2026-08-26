@@ -74,6 +74,13 @@ function M.parse_github_remote(url)
     owner, repository = url:match('^git@github%.com:([^/]+)/([^/]+)$')
   end
 
+  -- `git remote get-url` also returns the full ssh URL form, optionally with a
+  -- port. Without it an `ssh://` origin resolved to nil and every command that
+  -- defaults from the remote asked for `-u` and `-r` instead.
+  if not owner then
+    owner, repository = url:match('^ssh://git@github%.com[^/]*/([^/]+)/([^/]+)$')
+  end
+
   if not owner then
     return nil, nil
   end

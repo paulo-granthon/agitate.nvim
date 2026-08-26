@@ -71,6 +71,20 @@ describe('util', function()
       assert.are.equal('agitate.nvim', repository)
     end)
 
+    it('parses the full ssh url form', function()
+      local owner, repository = util.parse_github_remote('ssh://git@github.com/octocat/hello.git')
+
+      assert.are.equal('octocat', owner)
+      assert.are.equal('hello', repository)
+    end)
+
+    it('parses the full ssh url form with a port', function()
+      local owner, repository = util.parse_github_remote('ssh://git@github.com:443/octocat/hello.git')
+
+      assert.are.equal('octocat', owner)
+      assert.are.equal('hello', repository)
+    end)
+
     it('returns nil for a remote that is not GitHub', function()
       local owner, repository = util.parse_github_remote('https://gitlab.com/octocat/hello.git')
 
