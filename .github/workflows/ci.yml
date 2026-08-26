@@ -1,0 +1,111 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  lint:
+    name: luacheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: leafo/gh-actions-lua@v10
+        with:
+          luaVersion: "5.1"
+
+      - uses: leafo/gh-actions-luarocks@v4
+
+      - name: Install luacheck
+        run: luarocks install luacheck
+
+      - name: Run luacheck
+        run: |
+          eval "$(luarocks path)"
+          luacheck lua tests
+
+  format:
+    name: stylua
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: JohnnyMorganz/stylua-action@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          version: 2.4.1
+          args: --check lua tests
+
+  test:
+    name: busted (nvim ${{ matrix.nvim }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        nvim:
+          - v0.10.0
+          - stable
+          - nightly
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Neovim ${{ matrix.nvim }}
+        uses: rhysd/action-setup-vim@v1
+        with:
+          neovim: true
+          version: ${{ matrix.nvim }}
+
+      - uses: leafo/gh-actions-lua@v10
+        with:
+          luaVersion: "5.1"
+
+      - uses: leafo/gh-actions-luarocks@v4
+
+      - name: Install busted and nlua
+        run: |
+          luarocks install busted
+          luarocks install nlua
+
+      - name: Run tests
+        run: |
+          eval "$(luarocks path)"
+          nvim --version
+
+          # Driving busted through nlua occasionally leaves the Neovim
+          # process alive after the suite has already reported its results.
+          # It is a shutdown race in the harness rather than a fault in the
+          # specs, seen in roughly one run in eight locally. Bound each
+          # attempt and retry once, so a stuck run does not turn into a red
+          # build.
+          for attempt in 1 2; do
+            # `run:` steps execute under `bash -e`, so a non-zero exit here
+            # would end the step before the status could be inspected. `|| status=$?`
+            # keeps the failure in hand instead of aborting on it.
+            status=0
+            timeout 120 busted --lua=nlua || status=$?
+
+            if [ $status -eq 0 ]; then
+              exit 0
+            fi
+
+            # Only a timeout is the harness race worth retrying. A real test
+            # failure exits with its own status and should fail immediately
+            # rather than being retried and reported as "did not complete".
+            if [ $status -ne 124 ]; then
+              echo "::error::tests failed (exit $status)"
+              exit $status
+            fi
+
+            if [ "$attempt" -lt 2 ]; then
+              echo "::warning::test attempt $attempt timed out after 120s, retrying"
+            else
+              echo "::warning::test attempt $attempt timed out after 120s"
+            fi
+          done
+
+          echo "::error::tests timed out on every attempt"
+          exit 1

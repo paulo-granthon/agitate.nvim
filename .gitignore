@@ -1,0 +1,16 @@
+# Local dev helper scripts (not part of the plugin)
+/test_agitate.bash
+/outside_test_agitate.bash
+
+# Project memory, see CLAUDE.md
+/.dev/
+
+# LuaRocks local trees
+/.luarocks/
+/lua_modules/
+/luarocks/
+
+# Editor and OS noise
+*.swp
+*.swo
+.DS_Store
