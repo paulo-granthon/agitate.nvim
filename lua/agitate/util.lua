@@ -126,9 +126,20 @@ function M.encode_path_segment(segment)
 end
 
 ---Opens a URL in the user's browser.
----@param url string
+---@param url string|nil
+---@return boolean ok
+---@return string|nil reason
 function M.open_url(url)
+  -- Validated because the usual caller passes a field straight off a GitHub
+  -- payload, so a response without `html_url` would reach `vim.ui.open` as nil
+  -- and raise from inside the UI layer instead of saying what was missing.
+  if type(url) ~= 'string' or not url:match('%S') then
+    return false, 'no URL to open'
+  end
+
   vim.ui.open(url)
+
+  return true
 end
 
 ---Returns the name of the currently checked out branch.
