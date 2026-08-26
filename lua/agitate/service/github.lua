@@ -199,7 +199,11 @@ function M.get_all(access_token, path, action, callback)
         return callback(false, result)
       end
 
-      if type(result) ~= 'table' then
+      -- An object such as `{ "message": ... }` is a table with no array part,
+      -- so it read as a short page and came back as `ok` with an empty list.
+      -- An empty JSON array is also an empty table, hence the `next` check
+      -- rather than a length one.
+      if type(result) ~= 'table' or (next(result) ~= nil and result[1] == nil) then
         return callback(false, { message = 'service.github -- Error: expected a list from `' .. path .. '`.' })
       end
 

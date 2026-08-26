@@ -114,6 +114,17 @@ describe('ui.list', function()
       assert.are.equal(lines[1]:find('A', 1, true), lines[2]:find('B', 1, true))
     end)
 
+    -- `#` counts bytes, so a multibyte title pushed its column out by the
+    -- extra bytes rather than the extra cells.
+    it('aligns titles when a state contains multibyte characters', function()
+      local lines = list.render({
+        { number = 1, title = 'A', state = 'ok' },
+        { number = 2, title = 'B', state = 'ré' },
+      })
+
+      assert.are.equal(vim.fn.strdisplaywidth(lines[1]:gsub('A$', '')), vim.fn.strdisplaywidth(lines[2]:gsub('B$', '')))
+    end)
+
     it('returns no lines for no entries', function()
       assert.are.same({}, list.render({}))
     end)

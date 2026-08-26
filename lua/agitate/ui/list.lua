@@ -2,12 +2,16 @@ local M = {}
 
 local NAMESPACE = vim.api.nvim_create_namespace('agitate_list')
 
----Pads a string to a width, without truncating anything longer.
+---Pads a string to a display width, without truncating anything longer.
+---
+---Measured in display cells rather than bytes. `#` counts bytes, so a title
+---containing accented, CJK or emoji characters threw the column alignment out
+---by however many extra bytes it used.
 ---@param value string
 ---@param width number
 ---@return string
 local function pad(value, width)
-  return value .. string.rep(' ', math.max(width - #value, 0))
+  return value .. string.rep(' ', math.max(width - vim.fn.strdisplaywidth(value), 0))
 end
 
 ---Renders entries into aligned lines.
@@ -24,8 +28,8 @@ function M.render(entries)
   local state_width = 0
 
   for _, entry in ipairs(entries) do
-    number_width = math.max(number_width, #('#' .. tostring(entry.number)))
-    state_width = math.max(state_width, #tostring(entry.state or ''))
+    number_width = math.max(number_width, vim.fn.strdisplaywidth('#' .. tostring(entry.number)))
+    state_width = math.max(state_width, vim.fn.strdisplaywidth(tostring(entry.state or '')))
   end
 
   local lines = {}
