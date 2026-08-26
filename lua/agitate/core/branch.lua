@@ -41,9 +41,6 @@ end
 ---
 ---Read only queries go through git rather than fugitive because the answer is
 ---needed as a value here, not as output in a window.
----@param argv string[] The git command, without the leading `git`
----@return string[] output
----@return boolean ok
 ---Returns the name of the currently checked out branch, or nil in a detached
 ---HEAD or outside a repository.
 ---@return string|nil
