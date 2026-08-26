@@ -44,8 +44,9 @@ you rarely need to name it. `-u` and `-r` override the owner and repository
 anywhere below.
 
 - `:AgitatePrCreate` - Open a new pull request.  
-  Takes `-H` for the head branch and `-B` for the base. Head defaults to the
-  current branch and base to the repository's default branch.  
+  Takes `-H` for the head branch and `-B` for the base, in that order if you
+  pass them positionally. Head defaults to the current branch and base to the
+  repository's default branch.  
   Opens a scratch buffer: the first line is the title, the rest is the body.
 
 - `:AgitatePrList` - List the pull requests. Takes `-s` for the state.  

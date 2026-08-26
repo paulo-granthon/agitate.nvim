@@ -174,11 +174,14 @@ local function view(resolved, number)
 end
 
 ---Open a new pull request
----@param optional_parameters? table<string> `-B` base branch, `-H` head branch,
----`-u` owner and `-r` repository. Head defaults to the current branch and base
----to the repository's default branch.
+---@param optional_parameters? string[] `-H` head branch, `-B` base branch,
+---`-u` owner and `-r` repository, in that order if passed positionally. Head
+---defaults to the current branch and base to the repository's default branch.
 function M.Create(optional_parameters)
-  prepare({ '-B', '-H', '-u', '-r' }, optional_parameters, 'core.pr.Create', function(resolved, parameters)
+  -- `-H` first: `parse_args` fills declared flags positionally in declaration
+  -- order, so declaring the base first made `:AgitatePrCreate feature` set the
+  -- base to `feature` and open the pull request in the opposite direction.
+  prepare({ '-H', '-B', '-u', '-r' }, optional_parameters, 'core.pr.Create', function(resolved, parameters)
     local head = parameters['-H'] or util.current_branch()
 
     if not head then
