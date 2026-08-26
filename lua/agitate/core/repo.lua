@@ -25,7 +25,7 @@ local github = github_or_err
 local parse_args = require('agitate.parse_args')
 
 ---Create a new repository on GitHub
----@param optional_parameters? table<string> Parameters can be passed in order or explicitly
+---@param optional_parameters? string[] Parameters can be passed in order or explicitly
 ---with their corresponding flags:
 ---  -r: The name of the repository to create.
 ---  -u: The GitHub username or organization to create the repository under.
@@ -109,7 +109,7 @@ function M.Create(optional_parameters)
 end
 
 ---Change the visibility of an existing repository on GitHub
----@param optional_parameters? table<string> Parameters can be passed in order or explicitly
+---@param optional_parameters? string[] Parameters can be passed in order or explicitly
 ---with their corresponding flags:
 ---  -v: The visibility to set. Either 'public' or 'private'. Required.
 ---  -r: The repository name. Defaults to the one in the `origin` remote.
@@ -198,7 +198,7 @@ function M.Visibility(optional_parameters)
 end
 
 ---Initialize a new repository and push to GitHub
----@param optional_parameters? table<string> The value at each index depends on the number of parameters passed:
+---@param optional_parameters? string[] The value at each index depends on the number of parameters passed:
 --- 1 optional_parameter: The name of the repository to create.
 --- 2 optional_parameters: The first value is the GitHub username or organization
 ---    and the second is the name of the repository to create.
