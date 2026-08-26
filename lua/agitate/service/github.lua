@@ -318,7 +318,20 @@ end
 ---@param number number
 ---@param callback fun(ok: boolean, result: table|AgitateError)
 function M.get_issue(access_token, owner, repository, number, callback)
-  M.get(access_token, 'repos/' .. owner .. '/' .. repository .. '/issues/' .. number, 'read issue #' .. number, callback)
+  M.get(access_token, 'repos/' .. owner .. '/' .. repository .. '/issues/' .. number, 'read issue #' .. number, function(read_ok, result)
+    if not read_ok then
+      return callback(false, result)
+    end
+
+    -- A 200 guarantees valid JSON, not an object. Passing a decoded string or
+    -- boolean through would defer the failure to the renderer, which indexes
+    -- `title`, `state` and `user`.
+    if type(result) ~= 'table' then
+      return callback(false, { message = 'service.github.get_issue -- Error: expected an object for issue #' .. number .. '.' })
+    end
+
+    callback(true, result)
+  end)
 end
 
 ---Opens a new issue.
