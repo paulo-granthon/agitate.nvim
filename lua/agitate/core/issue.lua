@@ -55,7 +55,7 @@ end
 
 ---Parses arguments and resolves the context, reporting either failure.
 ---@param flags string[] The declared flags
----@param optional_parameters table<string>|nil
+---@param optional_parameters string[]|nil
 ---@param command string The command name, for the messages
 ---@param callback fun(context: table, parameters: table<string, string>)
 local function prepare(flags, optional_parameters, command, callback)
