@@ -66,7 +66,13 @@ end
 ---@param command string
 ---@param callback fun(context: table, parameters: table<string, string>)
 local function prepare(flags, optional_parameters, command, callback)
-  local parameters, leftover = parse_args(flags, optional_parameters)
+  local parameters, leftover, incomplete = parse_args(flags, optional_parameters)
+
+  -- Without this, `:AgitatePrMerge -n` reports nothing and falls back to the
+  -- defaults, which for a merge means acting on a pull request nobody named.
+  if #incomplete > 0 then
+    return agitate_error.throw(command .. ' -- Error: missing a value for ' .. table.concat(incomplete, ' '))
+  end
 
   if #leftover > 0 then
     return agitate_error.throw(command .. ' -- Error: unrecognised arguments: ' .. table.concat(leftover, ' '))
@@ -218,6 +224,18 @@ function M.Create(optional_parameters)
     github.get_repository(resolved.token, resolved.owner, resolved.repository, function(repository_ok, repository)
       if not repository_ok then
         return agitate_error.throw(repository)
+      end
+
+      -- `compose` builds strings from this, so a payload without it would
+      -- error while formatting rather than say what went wrong.
+      if not repository.default_branch then
+        return agitate_error.throw(
+          'core.pr.Create -- Error: GitHub returned no default branch for `'
+            .. resolved.owner
+            .. '/'
+            .. resolved.repository
+            .. '`. Pass `-B` to name the base branch explicitly.'
+        )
       end
 
       compose(repository.default_branch)
