@@ -21,7 +21,7 @@ local github = github_or_err
 local parse_args = require('agitate.parse_args')
 
 ---Create a new repository on GitHub
----@param optional_parameters? string[] Parameters can be passed in order or explicitly
+---@param optional_parameters? table<string> Parameters can be passed in order or explicitly
 ---with their corresponding flags:
 ---  -r: The name of the repository to create.
 ---  -u: The GitHub username or organization to create the repository under.
@@ -54,10 +54,10 @@ function M.CreateGitHubCurl(optional_parameters)
   local is_org, _ = github.get_organization(github_access_token, github_username)
 
   if is_org then
-    print((is_private and 'Private repository ' or 'Repository ') .. new_github_repository_name .. ' will be created under organization ' .. github_username)
+    print((is_private and 'Private r' or 'R') .. 'epository ' .. new_github_repository_name .. ' will be created under organization ' .. github_username)
     path = 'orgs/' .. github_username
   else
-    print((is_private and 'Private repository ' or 'Repository ') .. new_github_repository_name .. ' will be created under user ' .. github_username)
+    print((is_private and 'Private r' or 'R') .. 'epository ' .. new_github_repository_name .. ' will be created under user ' .. github_username)
   end
 
   local github_post_ok, github_post_response = github.post_new_repo(github_access_token, new_github_repository_name, is_private, path)
@@ -98,7 +98,7 @@ function M.CreateGitHubCurl(optional_parameters)
 end
 
 ---Initialize a new repository and push to GitHub
----@param optional_parameters? string[] The value at each index depends on the number of parameters passed:
+---@param optional_parameters? table<string> The value at each index depends on the number of parameters passed:
 --- 1 optional_parameter: The name of the repository to create.
 --- 2 optional_parameters: The first value is the GitHub username or organization
 ---    and the second is the name of the repository to create.
