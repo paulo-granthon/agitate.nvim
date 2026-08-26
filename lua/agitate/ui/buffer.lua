@@ -53,9 +53,13 @@ end
 
 ---Opens a scratch buffer for composing a title and body.
 ---
----Writing the buffer submits it. Closing without writing abandons it, and an
----empty buffer submits nothing, so there are two ways to change your mind and
----neither of them needs a special key.
+---Writing the buffer submits it. An empty buffer submits nothing, and `:q!`
+---abandons whatever is there, so there are two ways to change your mind.
+---
+---`:q!` rather than `:q`: once the user types, Neovim marks the buffer modified
+---and refuses a plain quit. Clearing the flag on every edit would suppress
+---Neovim's own safeguard against losing a half written issue, which is worth
+---more than saving a keystroke.
 ---
 ---`opts.raw` submits the buffer verbatim as the body, with an empty title.
 ---A comment has no title, so putting one through the title split trimmed its

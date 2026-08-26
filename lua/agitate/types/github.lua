@@ -11,7 +11,8 @@
 
 ---@class GitHubErrorResponse
 ---@field message string The top level description of the failure
----@field errors GitHubError[] The field level errors, when GitHub supplies them
+---@field errors? GitHubError[] The field level errors, when GitHub supplies them
 
 ---@class GitHubError
----@field message string Message of the error
+---@field message? string Message of the error, absent often enough that
+---`describe_failure` falls back to inspecting the object
