@@ -134,7 +134,7 @@ local function view(resolved, number)
 end
 
 ---Open a new issue
----@param optional_parameters? table<string> `-u` owner and `-r` repository,
+---@param optional_parameters? string[] `-u` owner and `-r` repository,
 ---both defaulting to the `origin` remote.
 function M.Create(optional_parameters)
   prepare({ '-u', '-r' }, optional_parameters, 'core.issue.Create', function(resolved)
@@ -159,7 +159,7 @@ function M.Create(optional_parameters)
 end
 
 ---List the issues of a repository
----@param optional_parameters? table<string> `-s` state (`open`, `closed` or
+---@param optional_parameters? string[] `-s` state (`open`, `closed` or
 ---`all`, defaulting to `open`), `-u` owner and `-r` repository.
 function M.List(optional_parameters)
   prepare({ '-s', '-u', '-r' }, optional_parameters, 'core.issue.List', function(resolved, parameters)
@@ -187,11 +187,11 @@ function M.List(optional_parameters)
             view(resolved, entry.number)
           end,
           ['o'] = function(entry)
-            if not entry.html_url then
-              return agitate_error.throw('core.issue.List -- Error: #' .. tostring(entry.number) .. ' has no URL to open.')
-            end
+            local opened, reason = util.open_url(entry.html_url)
 
-            util.open_url(entry.html_url)
+            if not opened then
+              return agitate_error.throw('core.issue.List -- Error: #' .. tostring(entry.number) .. ': ' .. tostring(reason))
+            end
           end,
           ['c'] = function(entry)
             M._comment(resolved, entry.number)
@@ -206,7 +206,7 @@ function M.List(optional_parameters)
 end
 
 ---View a single issue
----@param optional_parameters? table<string> `-n` issue number, `-u` owner, `-r` repository.
+---@param optional_parameters? string[] `-n` issue number, `-u` owner, `-r` repository.
 function M.View(optional_parameters)
   prepare({ '-n', '-u', '-r' }, optional_parameters, 'core.issue.View', function(resolved, parameters)
     local number = issue_number(parameters['-n'], 'core.issue.View')
@@ -258,7 +258,7 @@ function M._close(resolved, number)
 end
 
 ---Comment on an issue
----@param optional_parameters? table<string> `-n` issue number, `-u` owner, `-r` repository.
+---@param optional_parameters? string[] `-n` issue number, `-u` owner, `-r` repository.
 function M.Comment(optional_parameters)
   prepare({ '-n', '-u', '-r' }, optional_parameters, 'core.issue.Comment', function(resolved, parameters)
     local number = issue_number(parameters['-n'], 'core.issue.Comment')
@@ -270,7 +270,7 @@ function M.Comment(optional_parameters)
 end
 
 ---Close an issue
----@param optional_parameters? table<string> `-n` issue number, `-u` owner, `-r` repository.
+---@param optional_parameters? string[] `-n` issue number, `-u` owner, `-r` repository.
 function M.Close(optional_parameters)
   prepare({ '-n', '-u', '-r' }, optional_parameters, 'core.issue.Close', function(resolved, parameters)
     local number = issue_number(parameters['-n'], 'core.issue.Close')
@@ -282,7 +282,7 @@ function M.Close(optional_parameters)
 end
 
 ---Reopen an issue
----@param optional_parameters? table<string> `-n` issue number, `-u` owner, `-r` repository.
+---@param optional_parameters? string[] `-n` issue number, `-u` owner, `-r` repository.
 function M.Reopen(optional_parameters)
   prepare({ '-n', '-u', '-r' }, optional_parameters, 'core.issue.Reopen', function(resolved, parameters)
     local number = issue_number(parameters['-n'], 'core.issue.Reopen')

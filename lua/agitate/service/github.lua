@@ -344,7 +344,11 @@ function M.create_issue(access_token, owner, repository, issue, callback)
 
       -- The caller reports the new issue by concatenating both of these, so a
       -- success missing either would crash while announcing itself.
-      if not result.number or not result.html_url then
+      -- Type checked: the transport allows any JSON type, so a valid body that
+      -- decoded to a string or a boolean would raise on the index rather than be
+      -- reported as the malformed success it is. `create_repository` already does
+      -- this; the two are the same check.
+      if type(result) ~= 'table' or not result.number or not result.html_url then
         return callback(false, {
           message = 'service.github.create_issue -- Error: GitHub reported success but returned no `number` or `html_url`.',
         })
