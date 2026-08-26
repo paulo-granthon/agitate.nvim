@@ -198,6 +198,12 @@ function M.Create(optional_parameters)
             return agitate_error.throw(pull)
           end
 
+          -- Both are concatenated into the message, so a payload missing
+          -- either would raise while announcing the success.
+          if not pull.number or not pull.html_url then
+            return agitate_error.throw('core.pr.Create -- Error: GitHub reported success but returned no `number` or `html_url`.')
+          end
+
           vim.notify('Opened #' .. pull.number .. ': ' .. pull.html_url, vim.log.levels.INFO)
         end)
       end)
@@ -245,6 +251,10 @@ function M.List(optional_parameters)
             view(resolved, entry.number)
           end,
           ['o'] = function(entry)
+            if not entry.html_url then
+              return agitate_error.throw('core.pr.List -- Error: #' .. tostring(entry.number) .. ' has no URL to open.')
+            end
+
             util.open_url(entry.html_url)
           end,
           ['c'] = function(entry)
@@ -277,12 +287,16 @@ end
 function M.comment(resolved, number)
   editor.open({
     name = 'agitate://pr/' .. number .. '/comment',
+    -- `raw` because a comment has no title. Without it the buffer went through
+    -- the title split, which trimmed the first line and collapsed the blank
+    -- line after it, contradicting the help text below.
+    raw = true,
     help = {
       'Write your comment. The first line is not treated specially here.',
       'Write the buffer to submit, close it without writing to abandon.',
     },
-  }, function(title, body)
-    local text = body ~= '' and (title .. '\n' .. body) or title
+  }, function(_, body)
+    local text = body
 
     github.create_comment(resolved.token, resolved.owner, resolved.repository, number, text, function(commented_ok, comment)
       if not commented_ok then
