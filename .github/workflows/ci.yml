@@ -36,7 +36,7 @@ jobs:
       - uses: JohnnyMorganz/stylua-action@v4
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          version: latest
+          version: 2.4.1
           args: --check lua tests
 
   test:
@@ -80,12 +80,25 @@ jobs:
           # It is a shutdown race in the harness rather than a fault in the
           # specs, seen in roughly one run in eight locally. Bound each
           # attempt and retry once, so a stuck run does not turn into a red
-          # build. A genuine test failure fails both attempts.
+          # build.
           for attempt in 1 2; do
-            if timeout 120 busted --lua=nlua; then
+            timeout 120 busted --lua=nlua
+            status=$?
+
+            if [ $status -eq 0 ]; then
               exit 0
             fi
-            echo "::warning::test attempt $attempt did not complete cleanly"
+
+            # Only a timeout is the harness race worth retrying. A real test
+            # failure exits with its own status and should fail immediately
+            # rather than being retried and reported as "did not complete".
+            if [ $status -ne 124 ]; then
+              echo "::error::tests failed (exit $status)"
+              exit $status
+            fi
+
+            echo "::warning::test attempt $attempt timed out after 120s, retrying"
           done
 
+          echo "::error::tests timed out on every attempt"
           exit 1
