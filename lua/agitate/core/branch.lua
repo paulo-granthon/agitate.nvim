@@ -71,11 +71,14 @@ end
 ---
 ---Separated from the command so the rules can be tested without a repository:
 ---everything below is a pure function of its arguments.
+---Answers only "may this branch be deleted", not "what should happen to the
+---remote". The remote answer needs the resolved branch name, so the caller
+---looks it up after this returns rather than passing in a value it cannot know
+---yet, which is what the discarded `has_remote` parameter used to pretend.
 ---@param branch string|nil The branch the user asked for
 ---@param current string|nil The currently checked out branch
----@param has_remote boolean Whether the branch exists on the remote
----@return table Plan `{ ok = false, reason = string }` or `{ ok = true, branch = string, delete_remote = boolean }`
-function M._plan_delete(branch, current, has_remote)
+---@return table Plan `{ ok = false, reason = string }` or `{ ok = true, branch = string }`
+function M._plan_delete(branch, current)
   -- Deliberately no default. Defaulting to the current branch and then
   -- refusing to delete the current branch would make the no argument form
   -- impossible to satisfy, so the branch is required and the README says so.
@@ -92,7 +95,7 @@ function M._plan_delete(branch, current, has_remote)
     }
   end
 
-  return { ok = true, branch = branch, delete_remote = has_remote }
+  return { ok = true, branch = branch }
 end
 
 ---Builds the text of the confirmation prompt.
@@ -134,18 +137,18 @@ function M.Delete(optional_parameters)
   local requested = parameters['-b']
   local current = M._current_branch()
 
-  local plan = M._plan_delete(requested, current, false)
+  local plan = M._plan_delete(requested, current)
 
   if not plan.ok then
     return agitate_error.throw('core.branch.Delete -- Error: ' .. plan.reason)
   end
 
-  plan.delete_remote = M._exists_on_remote(remote, plan.branch)
+  local delete_remote = M._exists_on_remote(remote, plan.branch)
 
   -- Deleting a branch discards work that may not exist anywhere else, so the
   -- user confirms before anything is run. `-d` is the safe form and refuses to
   -- drop unmerged commits; forcing is a separate, explicit choice.
-  local choice = vim.fn.confirm(M._confirm_prompt(plan.branch, plan.delete_remote, remote), '&Delete\n&Force delete\n&Cancel', 3, 'Question')
+  local choice = vim.fn.confirm(M._confirm_prompt(plan.branch, delete_remote, remote), '&Delete\n&Force delete\n&Cancel', 3, 'Question')
 
   if choice ~= 1 and choice ~= 2 then
     return vim.notify('Branch deletion cancelled.', vim.log.levels.INFO)
@@ -164,7 +167,7 @@ function M.Delete(optional_parameters)
 
   vim.notify('Deleted `' .. plan.branch .. '` locally.', vim.log.levels.INFO)
 
-  if not plan.delete_remote then
+  if not delete_remote then
     return
   end
 

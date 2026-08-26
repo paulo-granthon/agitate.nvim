@@ -3,21 +3,16 @@ describe('core.branch', function()
 
   describe('plan_delete', function()
     it('deletes the branch that was asked for', function()
-      local plan = branch._plan_delete('feature', 'main', true)
+      local plan = branch._plan_delete('feature', 'main')
 
       assert.is_true(plan.ok)
       assert.are.equal('feature', plan.branch)
-      assert.is_true(plan.delete_remote)
-    end)
-
-    it('skips the remote when the branch has no counterpart there', function()
-      assert.is_false(branch._plan_delete('feature', 'main', false).delete_remote)
     end)
 
     -- git itself refuses this, and switching away on the user's behalf would be
     -- a surprising side effect of asking to delete something.
     it('refuses to delete the current branch', function()
-      local plan = branch._plan_delete('main', 'main', true)
+      local plan = branch._plan_delete('main', 'main')
 
       assert.is_false(plan.ok)
       assert.is_truthy(plan.reason:find('current branch', 1, true))
@@ -27,13 +22,13 @@ describe('core.branch', function()
     -- to delete the current branch made the no argument form unusable.
     it('refuses when no branch is named', function()
       for _, given in ipairs({ '' }) do
-        local plan = branch._plan_delete(given, 'main', false)
+        local plan = branch._plan_delete(given, 'main')
 
         assert.is_false(plan.ok)
         assert.is_truthy(plan.reason:find('no branch name given', 1, true))
       end
 
-      local plan = branch._plan_delete(nil, 'main', false)
+      local plan = branch._plan_delete(nil, 'main')
 
       assert.is_false(plan.ok)
       assert.is_truthy(plan.reason:find('no branch name given', 1, true))
