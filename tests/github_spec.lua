@@ -349,15 +349,16 @@ describe('service.github', function()
     -- GitHub's issues endpoint also returns pull requests. Any entry with a
     -- `pull_request` key is one, and an issue list showing them would be wrong.
     it('filters out pull requests', function()
-      respond_with(true, {
-        status = 200,
-        raw = '[]',
-        body = {
-          { number = 1, title = 'A real issue' },
-          { number = 2, title = 'A pull request', pull_request = { url = 'https://api.github.com/x' } },
-          { number = 3, title = 'Another issue' },
-        },
-      })
+      local body = {
+        { number = 1, title = 'A real issue' },
+        { number = 2, title = 'A pull request', pull_request = { url = 'https://api.github.com/x' } },
+        { number = 3, title = 'Another issue' },
+      }
+
+      -- `raw` derived from `body` rather than left as `[]`: it is only used in
+      -- error messages today, but a fixture that disagrees with itself is a
+      -- trap for whatever reads it next.
+      respond_with(true, { status = 200, raw = vim.json.encode(body), body = body })
 
       local result
       github.list_issues('token', 'acme', 'thing', 'open', function(_, value)
