@@ -32,7 +32,10 @@ function M.apply_license_placeholders(body, year, author)
   local safe_author = tostring(author):gsub('%%', '%%%%')
   local safe_year = tostring(year):gsub('%%', '%%%%')
 
-  return (body:gsub('%[year%]', safe_year):gsub('%[fullname%]', safe_author):gsub('<year>', safe_year):gsub('<name of author>', safe_author))
+  -- Years first, author last. Substituting the author before `<year>` meant a
+  -- later pass ran over text the user supplied, so an author literally
+  -- containing `<year>` had part of their own name rewritten.
+  return (body:gsub('%[year%]', safe_year):gsub('<year>', safe_year):gsub('%[fullname%]', safe_author):gsub('<name of author>', safe_author))
 end
 
 ---Reports whether a string is a usable GitHub account name.

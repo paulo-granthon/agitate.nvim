@@ -26,6 +26,14 @@ describe('core.file', function()
       assert.are.equal('2026', file.apply_license_placeholders('[year]', '2026', 'anyone'))
     end)
 
+    -- Substituting the author first meant the later `<year>` pass ran over the
+    -- name that had just been inserted.
+    it('does not rewrite a placeholder that came from the author name', function()
+      local body = file.apply_license_placeholders('[fullname] in [year]', 2026, 'Team <year>')
+
+      assert.are.equal('Team <year> in 2026', body)
+    end)
+
     it('leaves a body with no placeholders untouched', function()
       assert.are.equal('All rights reserved.', file.apply_license_placeholders('All rights reserved.', 2026, 'anyone'))
     end)
