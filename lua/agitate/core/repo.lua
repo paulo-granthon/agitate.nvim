@@ -53,7 +53,16 @@ function M.Create(optional_parameters)
 
   local repository_name = parameters['-r'] or util.get_directory_name()
   local github_username = parameters['-u'] or options.github_username
-  local is_private = parameters['-v'] == 'private'
+  local visibility = parameters['-v']
+
+  -- Validated rather than compared. Anything other than the exact string
+  -- `private` used to mean public, so `-v privte` silently created a public
+  -- repository, which is the one mistake here that cannot be taken back.
+  if visibility and visibility ~= 'public' and visibility ~= 'private' then
+    return agitate_error.throw('core.repo.Create -- Error: `-v` expects `public` or `private`, got `' .. visibility .. '`')
+  end
+
+  local is_private = visibility == 'private'
 
   local github_access_token = options.github_access_token
 
