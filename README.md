@@ -163,7 +163,7 @@ Features planned for implementation
   - [x] Add `.gitignore` from GitHub template
   - [x] Add `LICENSE` from GitHub template
 
-  - [x] Add `FUNDING.yml`
+  - [x] Add `.github/FUNDING.yml`
   - [ ] Add `MAINTAINERS.md` (?)
     - Still open. GitHub has no template endpoint for this one, and there is no
       settled convention for what it should contain, so it needs a decision
