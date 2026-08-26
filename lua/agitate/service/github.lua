@@ -113,7 +113,17 @@ function M.is_organization(access_token, name, callback)
       return callback(false, response)
     end
 
+    -- A 200 alone is not enough. The transport reports `body = nil` when the
+    -- response was not JSON, which a proxy or an outage page can produce, and
+    -- treating that as an organization would create the repository under
+    -- `orgs/<name>` on the strength of an HTML error page.
     if response.status == 200 then
+      if not response.body then
+        return callback(false, {
+          message = 'service.github.is_organization -- Error: expected JSON from the organization lookup.\nRaw response: ' .. response.raw,
+        })
+      end
+
       return callback(true, true)
     end
 
