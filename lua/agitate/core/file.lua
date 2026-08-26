@@ -185,7 +185,10 @@ function M.License(optional_parameters)
   local configured_author = options.file and options.file.license and options.file.license.author
   local author = parameters['-a'] or configured_author or options.github_username
 
-  if not author then
+  -- Whitespace only counts as absent. The point of substituting the
+  -- placeholders is to avoid a LICENSE that names nobody, and `  ` produces
+  -- exactly that while looking like a real value.
+  if not author or not author:match('%S') then
     return agitate_error.throw(
       'core.file.License -- Error: no copyright holder to write.' .. '\nPass `-a`, or set `file.license.author` or `github_username` in your configuration.'
     )
