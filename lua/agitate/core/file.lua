@@ -35,6 +35,21 @@ function M.apply_license_placeholders(body, year, author)
   return (body:gsub('%[year%]', safe_year):gsub('%[fullname%]', safe_author):gsub('<year>', safe_year):gsub('<name of author>', safe_author))
 end
 
+---Reports whether a string is a usable GitHub account name.
+---
+---GitHub allows alphanumerics and single hyphens, not leading or trailing,
+---up to 39 characters. Worth checking before writing one into a YAML flow
+---sequence, where a `]` or a `,` would silently produce a broken file.
+---@param username string
+---@return boolean
+function M.is_valid_username(username)
+  if type(username) ~= 'string' or #username == 0 or #username > 39 then
+    return false
+  end
+
+  return username:match('^%w[%w%-]*$') ~= nil and not username:find('%-%-') and username:sub(-1) ~= '-'
+end
+
 ---Builds the contents of a `FUNDING.yml`.
 ---@param username string The GitHub username to list as a sponsor target
 ---@return string[] lines
@@ -236,6 +251,12 @@ function M.Funding(optional_parameters)
 
   if not username then
     return agitate_error.throw('core.file.Funding -- Error: no username to fund. Pass `-u` or set `github_username`.')
+  end
+
+  -- The name goes into a YAML flow sequence, where a `]` or a `,` would
+  -- produce a file that looks written but does not parse.
+  if not M.is_valid_username(username) then
+    return agitate_error.throw('core.file.Funding -- Error: `' .. username .. '` is not a valid GitHub account name.')
   end
 
   write_file(cwd_path('.github/FUNDING.yml'), M.funding_content(username), 'a funding file')

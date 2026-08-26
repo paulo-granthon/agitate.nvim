@@ -37,6 +37,28 @@ describe('core.file', function()
     end)
   end)
 
+  describe('is_valid_username', function()
+    it('accepts ordinary account names', function()
+      for _, name in ipairs({ 'octocat', 'paulo-granthon', 'a', 'a1-b2' }) do
+        assert.is_true(file.is_valid_username(name), name)
+      end
+    end)
+
+    -- The name is written into a YAML flow sequence, so these would produce a
+    -- FUNDING.yml that looks written but does not parse.
+    it('rejects anything that would break the YAML', function()
+      for _, name in ipairs({ 'oct]cat', 'oct,cat', 'oct cat', 'oct"cat', '' }) do
+        assert.is_false(file.is_valid_username(name), name)
+      end
+    end)
+
+    it('rejects names GitHub itself would not issue', function()
+      for _, name in ipairs({ '-leading', 'trailing-', 'double--hyphen', string.rep('a', 40) }) do
+        assert.is_false(file.is_valid_username(name), name)
+      end
+    end)
+  end)
+
   describe('funding_content', function()
     it('lists the username under the github platform', function()
       local lines = file.funding_content('octocat')
