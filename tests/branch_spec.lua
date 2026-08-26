@@ -49,10 +49,12 @@ describe('core.branch', function()
       assert.is_truthy(prompt:find('locally and from', 1, true))
     end)
 
-    it('says the remote is untouched when there is nothing there', function()
+    it('says the remote is left alone without claiming what is on it', function()
       local prompt = branch._confirm_prompt('feature', false, 'origin')
 
-      assert.is_truthy(prompt:find('no counterpart', 1, true))
+      assert.is_truthy(prompt:find('left alone', 1, true))
+      -- The check is local, so the prompt must not assert the remote's state.
+      assert.is_nil(prompt:find('no counterpart', 1, true))
     end)
   end)
 

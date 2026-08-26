@@ -112,7 +112,10 @@ function M._confirm_prompt(branch, delete_remote, remote)
     return 'Delete branch `' .. branch .. '` locally and from `' .. remote .. '`?'
   end
 
-  return 'Delete branch `' .. branch .. '` locally? It has no counterpart on `' .. remote .. '`.'
+  -- Deliberately does not claim the remote has no such branch. The check is
+  -- against the local remote tracking ref, which is absent for a branch that
+  -- exists on the remote but has never been fetched.
+  return 'Delete branch `' .. branch .. '` locally? No tracked branch on `' .. remote .. '`, so the remote is left alone.'
 end
 
 ---Delete a named branch locally and, when it has one, its remote counterpart
