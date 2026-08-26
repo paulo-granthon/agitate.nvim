@@ -218,10 +218,14 @@ function M.Init(optional_parameters)
     { 'push', '-u', 'origin', 'main' },
   }
 
-  -- Through `util.git`, which runs in the buffer's repository rather than the
-  -- process working directory and merges stderr, where git puts its reasons.
+  -- Explicitly the working directory, not the buffer's. `Init` initialises the
+  -- directory the user is in, and its README is written relative to `getcwd()`,
+  -- so letting git resolve the buffer's directory instead would split one
+  -- command across two places: README here, `git init` there.
+  local directory = vim.fn.getcwd()
+
   for _, step in ipairs(steps) do
-    local output, step_ok = util.git(step)
+    local output, step_ok = util.git(step, directory)
 
     if not step_ok then
       return agitate_error.throw('core.repo.Init -- Error: `git ' .. table.concat(step, ' ') .. '` failed.\n' .. table.concat(output, '\n'))
