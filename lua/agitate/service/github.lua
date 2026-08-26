@@ -172,7 +172,7 @@ end
 ---@param access_token string Your GitHub PAT
 ---@param owner string The user or organization owning the repository
 ---@param repository string The repository name
----@param is_private boolean The visibility to set
+---@param is_private boolean `true` makes the repository private, `false` public
 ---@param callback fun(ok: boolean, result: table|AgitateError) Completion handler
 function M.set_repository_visibility(access_token, owner, repository, is_private, callback)
   M.call(access_token, {

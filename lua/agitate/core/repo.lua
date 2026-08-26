@@ -140,9 +140,12 @@ function M.Visibility(optional_parameters)
   -- repository, which is not something a visibility change should guess at.
   local origin_owner, origin_repository = util.origin_repository()
   local repository_name = parameters['-r'] or origin_repository
-  local github_username = parameters['-u'] or origin_owner
+  -- Named `owner` rather than `github_username`: it is the account that owns
+  -- the repository, which is not necessarily the configured one, and reusing
+  -- the other name is what made the unsafe fallback easy to reintroduce.
+  local owner = parameters['-u'] or origin_owner
 
-  if not github_username or not repository_name then
+  if not owner or not repository_name then
     return agitate_error.throw(
       'core.repo.Visibility -- Error: could not determine which repository to change.'
         .. '\nPass `-u` and `-r`, or run this inside a repository whose `origin` points at GitHub.'
@@ -156,7 +159,7 @@ function M.Visibility(optional_parameters)
   -- forked or indexed. Going private is not a disclosure, so it does not ask.
   if not is_private then
     local choice = vim.fn.confirm(
-      'Make `' .. github_username .. '/' .. repository_name .. '` public?' .. '\nEverything in it, including its full history, becomes visible to everyone.',
+      'Make `' .. owner .. '/' .. repository_name .. '` public?' .. '\nEverything in it, including its full history, becomes visible to everyone.',
       '&Make public\n&Cancel',
       2,
       'Question'
@@ -173,12 +176,12 @@ function M.Visibility(optional_parameters)
     return agitate_error.throw('core.repo.Visibility -- Error: undefined GitHub access token')
   end
 
-  github.set_repository_visibility(github_access_token, github_username, repository_name, is_private, function(changed_ok, result)
+  github.set_repository_visibility(github_access_token, owner, repository_name, is_private, function(changed_ok, result)
     if not changed_ok then
       return agitate_error.throw(result)
     end
 
-    vim.notify('`' .. github_username .. '/' .. repository_name .. '` is now ' .. visibility .. '.', vim.log.levels.INFO)
+    vim.notify('`' .. owner .. '/' .. repository_name .. '` is now ' .. visibility .. '.', vim.log.levels.INFO)
   end)
 end
 
