@@ -96,6 +96,14 @@ end
 ---@param command string
 ---@return number|nil
 local function pull_number(value, command)
+  -- A missing flag and a malformed one are different mistakes, and "expected
+  -- a positive number, got `nil`" does not tell the user to pass `-n`.
+  if value == nil or value == '' then
+    agitate_error.throw(command .. ' -- Error: no pull request number given. Pass `-n <number>`.')
+
+    return nil
+  end
+
   local number = tonumber(value)
 
   -- Pull request numbers are positive integers. `3.14`, `0` and `-1` all
