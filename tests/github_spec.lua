@@ -394,9 +394,17 @@ describe('service.github', function()
 
   describe('create_issue', function()
     it('posts the title and body', function()
-      respond_with(true, { status = 201, body = { number = 5 }, raw = '{}' })
+      -- A realistic success shape. Without `html_url` the service treats the
+      -- response as malformed, so the assertions below would have been
+      -- checking the request of a call that reported failure.
+      respond_with(true, { status = 201, body = { number = 5, html_url = 'https://github.com/acme/thing/issues/5' }, raw = '{}' })
 
-      github.create_issue('token', 'acme', 'thing', { title = 'Fix it', body = 'Please.' }, function() end)
+      local created_ok
+      github.create_issue('token', 'acme', 'thing', { title = 'Fix it', body = 'Please.' }, function(value_ok)
+        created_ok = value_ok
+      end)
+
+      assert.is_true(created_ok)
 
       assert.are.equal('POST', captured_request.method)
       assert.are.equal('https://api.github.com/repos/acme/thing/issues', captured_request.url)
