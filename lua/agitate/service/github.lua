@@ -277,4 +277,66 @@ function M.create_comment(access_token, owner, repository, number, body, callbac
   }, 'comment on `' .. owner .. '/' .. repository .. '#' .. number .. '`', 201, callback)
 end
 
+---Lists the pull requests of a repository.
+---@param access_token string
+---@param owner string
+---@param repository string
+---@param state string `open`, `closed` or `all`
+---@param callback fun(ok: boolean, result: table[]|AgitateError)
+function M.list_pull_requests(access_token, owner, repository, state, callback)
+  M.get_all(
+    access_token,
+    'repos/' .. owner .. '/' .. repository .. '/pulls?state=' .. state,
+    'list the pull requests of `' .. owner .. '/' .. repository .. '`',
+    callback
+  )
+end
+
+---Fetches a single pull request.
+---
+---The list endpoint omits `mergeable` and `mergeable_state`; only the single
+---pull request endpoint computes them, which is why merging fetches first.
+---@param access_token string
+---@param owner string
+---@param repository string
+---@param number number
+---@param callback fun(ok: boolean, result: table|AgitateError)
+function M.get_pull_request(access_token, owner, repository, number, callback)
+  M.get(access_token, 'repos/' .. owner .. '/' .. repository .. '/pulls/' .. number, 'read pull request #' .. number, callback)
+end
+
+---Opens a new pull request.
+---@param access_token string
+---@param owner string
+---@param repository string
+---@param pull table `{ title = string, body = string, head = string, base = string }`
+---@param callback fun(ok: boolean, result: table|AgitateError)
+function M.create_pull_request(access_token, owner, repository, pull, callback)
+  M.call(access_token, {
+    path = 'repos/' .. owner .. '/' .. repository .. '/pulls',
+    method = 'POST',
+    body = {
+      title = pull.title,
+      body = pull.body,
+      head = pull.head,
+      base = pull.base,
+    },
+  }, 'open a pull request on `' .. owner .. '/' .. repository .. '`', 201, callback)
+end
+
+---Merges a pull request.
+---@param access_token string
+---@param owner string
+---@param repository string
+---@param number number
+---@param method string `merge`, `squash` or `rebase`
+---@param callback fun(ok: boolean, result: table|AgitateError)
+function M.merge_pull_request(access_token, owner, repository, number, method, callback)
+  M.call(access_token, {
+    path = 'repos/' .. owner .. '/' .. repository .. '/pulls/' .. number .. '/merge',
+    method = 'PUT',
+    body = { merge_method = method },
+  }, 'merge pull request #' .. number, 200, callback)
+end
+
 return M
