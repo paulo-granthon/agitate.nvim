@@ -34,22 +34,23 @@ local util = util_or_err
 ---@see AgitateError
 function M.post_new_repo(access_token, repository, is_private, path)
   -- Execute curl to create the repository through the GitHub api
-  local raw_github_response = util.execute_command(
-    'curl'
-      .. ' -H '
-      .. '"Authorization: token '
-      .. access_token
-      .. '" '
-      .. 'https://api.github.com/'
-      .. path
-      .. '/repos'
-      .. ' -d '
-      .. [['{"name":"]]
-      .. repository
-      .. [[","private":]]
-      .. tostring(is_private)
-      .. [[}']]
-  )
+  -- An argument vector rather than one string. `vim.fn.systemlist` runs a
+  -- string through a shell, so the token, repository name and path were all
+  -- interpolated unescaped into a shell command. A list bypasses the shell
+  -- entirely, and `vim.json.encode` removes the hand built JSON quoting that
+  -- produced a malformed body once already.
+  local raw_github_response = util.execute_command({
+    'curl',
+    '--silent',
+    '--show-error',
+    '-H',
+    'Authorization: token ' .. access_token,
+    '-H',
+    'Accept: application/vnd.github+json',
+    'https://api.github.com/' .. path .. '/repos',
+    '-d',
+    vim.json.encode({ name = repository, private = is_private }),
+  })
 
   -- Flatten the table response to string
   local flattened_github_response = util.flatten_table(raw_github_response)
@@ -87,18 +88,17 @@ end
 ---@see AgitateError
 function M.get_organization(access_token, org)
   -- Execute curl to get the organization information through the GitHub api
-  local raw_github_response = util.execute_command(
-    'curl'
-      .. ' -L'
-      .. ' -H '
-      .. '"Authorization: token '
-      .. access_token
-      .. '"'
-      .. ' -H'
-      .. '"Accept: application/vnd.github+json"'
-      .. ' https://api.github.com/orgs/'
-      .. org
-  )
+  local raw_github_response = util.execute_command({
+    'curl',
+    '--silent',
+    '--show-error',
+    '--location',
+    '-H',
+    'Authorization: token ' .. access_token,
+    '-H',
+    'Accept: application/vnd.github+json',
+    'https://api.github.com/orgs/' .. org,
+  })
 
   -- Flatten the table response to string
   local flattened_github_response = util.flatten_table(raw_github_response)
@@ -117,8 +117,11 @@ function M.get_organization(access_token, org)
   end
 
   if json_decoded.message then
+    -- A 404 is how GitHub says "this name is a user", which is the common
+    -- case rather than a failure. Returning `unhandled` labelled it as a
+    -- defect in Agitate and made the error channel useless for real problems.
     if json_decoded.message == 'Not Found' then
-      return false, agitate_error.unhandled('service.github.get_organization')
+      return false, json_decoded
     end
 
     return false, { message = 'service.github.get_organization -- Error: ' .. json_decoded.message }
