@@ -82,8 +82,11 @@ jobs:
           # attempt and retry once, so a stuck run does not turn into a red
           # build.
           for attempt in 1 2; do
-            timeout 120 busted --lua=nlua
-            status=$?
+            # `run:` steps execute under `bash -e`, so a non-zero exit here
+            # would end the step before the status could be inspected. `|| status=$?`
+            # keeps the failure in hand instead of aborting on it.
+            status=0
+            timeout 120 busted --lua=nlua || status=$?
 
             if [ $status -eq 0 ]; then
               exit 0
