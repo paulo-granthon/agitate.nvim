@@ -20,6 +20,7 @@ if not types_ok then
 end
 
 local http = http_or_err
+local util = require('agitate.util')
 
 ---Builds a readable message from a GitHub error response.
 ---
@@ -180,7 +181,9 @@ end
 ---@param name string The template name, as returned by `list_gitignore_templates`
 ---@param callback fun(ok: boolean, result: table|AgitateError)
 function M.get_gitignore_template(access_token, name, callback)
-  M.get(access_token, 'gitignore/templates/' .. name, 'fetch the gitignore template `' .. name .. '`', callback)
+  -- Encoded: GitHub has a `C++` template, and a name containing `#` or a
+  -- space would change which endpoint is reached rather than failing visibly.
+  M.get(access_token, 'gitignore/templates/' .. util.encode_path_segment(name), 'fetch the gitignore template `' .. name .. '`', callback)
 end
 
 ---Lists the licenses GitHub can supply.
@@ -195,7 +198,7 @@ end
 ---@param key string The license key, such as `mit`
 ---@param callback fun(ok: boolean, result: table|AgitateError)
 function M.get_license(access_token, key, callback)
-  M.get(access_token, 'licenses/' .. key, 'fetch the license `' .. key .. '`', callback)
+  M.get(access_token, 'licenses/' .. util.encode_path_segment(key), 'fetch the license `' .. key .. '`', callback)
 end
 
 return M

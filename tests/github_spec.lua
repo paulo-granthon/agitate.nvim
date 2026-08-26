@@ -230,4 +230,27 @@ describe('service.github', function()
       assert.is_truthy(result.message:find('no `html_url`', 1, true))
     end)
   end)
+  describe('get_gitignore_template', function()
+    -- `C++` is a real template name. Unencoded, a name containing `#` would
+    -- truncate the path at the fragment and hit the wrong endpoint entirely.
+    it('percent encodes the template name in the path', function()
+      respond_with(true, { status = 200, body = { source = 'build/' }, raw = '{}' })
+
+      github.get_gitignore_template('token', 'C++', function() end)
+
+      assert.are.equal('https://api.github.com/gitignore/templates/C%2B%2B', captured_request.url)
+    end)
+
+    it('names the template unencoded in the failure message', function()
+      respond_with(true, { status = 404, body = { message = 'Not Found' }, raw = '{}' })
+
+      local fetch_ok, result
+      github.get_gitignore_template('token', 'C++', function(value_ok, value)
+        fetch_ok, result = value_ok, value
+      end)
+
+      assert.is_false(fetch_ok)
+      assert.is_truthy(result.message:find('C++', 1, true))
+    end)
+  end)
 end)
