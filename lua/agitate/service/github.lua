@@ -2,17 +2,21 @@ local M = {}
 
 local ok, agitate_error = pcall(require, 'agitate.error')
 if not ok then
-  return vim.notify(require('agitate.const.error').import, vim.log.levels.ERROR)
+  local message = require('agitate.const.error').import
+  vim.notify(message, vim.log.levels.ERROR)
+  error(message, 0)
 end
 
 local http_ok, http_or_err = pcall(require, 'agitate.service.http')
 if not http_ok then
-  return agitate_error.throw(http_or_err)
+  agitate_error.throw(http_or_err)
+  error(http_or_err, 0)
 end
 
 local types_ok, types_or_err = pcall(require, 'agitate.types.github')
 if not types_ok then
-  return agitate_error.throw(types_or_err)
+  agitate_error.throw(types_or_err)
+  error(types_or_err, 0)
 end
 
 local http = http_or_err
