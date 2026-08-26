@@ -152,10 +152,11 @@ end
 ---Merges stdout and stderr, because git reports almost every failure on
 ---stderr and a caller that only sees stdout reports a failure with no reason.
 ---@param argv string[] The git command, without the leading `git`
+---@param directory string|nil Where to run, defaulting to the buffer's directory
 ---@return string[] output
 ---@return boolean ok
-function M.git(argv)
-  local command = { 'git', '-C', M.buffer_directory() }
+function M.git(argv, directory)
+  local command = { 'git', '-C', directory or M.buffer_directory() }
   vim.list_extend(command, argv)
 
   local completed = vim.system(command, { text = true }):wait()
