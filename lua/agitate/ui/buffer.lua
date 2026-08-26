@@ -73,6 +73,10 @@ function M.open(opts, callback)
   vim.api.nvim_buf_set_name(buffer, opts.name)
 
   vim.api.nvim_buf_set_lines(buffer, 0, -1, false, opts.initial or { '' })
+  -- `nvim_buf_set_lines` marks the buffer modified, so an untouched editor
+  -- prompted about unsaved changes on close, contradicting the help text
+  -- that says closing without writing abandons it.
+  vim.api.nvim_set_option_value('modified', false, { buf = buffer })
 
   vim.api.nvim_win_set_buf(0, buffer)
 
