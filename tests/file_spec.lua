@@ -47,7 +47,9 @@ describe('core.file', function()
     -- The name is written into a YAML flow sequence, so these would produce a
     -- FUNDING.yml that looks written but does not parse.
     it('rejects anything that would break the YAML', function()
-      for _, name in ipairs({ 'oct]cat', 'oct,cat', 'oct cat', 'oct"cat', '' }) do
+      -- Underscore is included deliberately: Lua's `%w` does not match it, so
+      -- this pins the behaviour the docstring describes.
+      for _, name in ipairs({ 'oct]cat', 'oct,cat', 'oct cat', 'oct"cat', 'octo_cat', '' }) do
         assert.is_false(file.is_valid_username(name), name)
       end
     end)

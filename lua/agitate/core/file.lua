@@ -179,7 +179,11 @@ function M.License(optional_parameters)
   end
 
   local token = options.github_access_token
-  local author = parameters['-a'] or options.file.license.author or options.github_username
+  -- Navigated defensively: `file` and `file.license` are optional in the
+  -- config type, so a hand assembled options table can omit them and the
+  -- fallback to `github_username` should still work rather than raise.
+  local configured_author = options.file and options.file.license and options.file.license.author
+  local author = parameters['-a'] or configured_author or options.github_username
 
   if not author then
     return agitate_error.throw(
