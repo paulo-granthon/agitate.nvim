@@ -20,6 +20,7 @@ if not types_ok then
 end
 
 local http = http_or_err
+local util = require('agitate.util')
 
 ---Builds a readable message from a GitHub error response.
 ---
@@ -173,6 +174,38 @@ function M.create_repository(access_token, options, callback)
       callback(true, result)
     end
   )
+end
+
+---Lists the names of every available `.gitignore` template.
+---@param access_token string|nil
+---@param callback fun(ok: boolean, result: string[]|AgitateError)
+function M.list_gitignore_templates(access_token, callback)
+  M.get(access_token, 'gitignore/templates', 'list the gitignore templates', callback)
+end
+
+---Fetches one `.gitignore` template.
+---@param access_token string|nil
+---@param name string The template name, as returned by `list_gitignore_templates`
+---@param callback fun(ok: boolean, result: table|AgitateError)
+function M.get_gitignore_template(access_token, name, callback)
+  -- Encoded: GitHub has a `C++` template, and a name containing `#` or a
+  -- space would change which endpoint is reached rather than failing visibly.
+  M.get(access_token, 'gitignore/templates/' .. util.encode_path_segment(name), 'fetch the gitignore template `' .. name .. '`', callback)
+end
+
+---Lists the licenses GitHub can supply.
+---@param access_token string|nil
+---@param callback fun(ok: boolean, result: table[]|AgitateError)
+function M.list_licenses(access_token, callback)
+  M.get(access_token, 'licenses', 'list the available licenses', callback)
+end
+
+---Fetches one license, including its full text.
+---@param access_token string|nil
+---@param key string The license key, such as `mit`
+---@param callback fun(ok: boolean, result: table|AgitateError)
+function M.get_license(access_token, key, callback)
+  M.get(access_token, 'licenses/' .. util.encode_path_segment(key), 'fetch the license `' .. key .. '`', callback)
 end
 
 return M
