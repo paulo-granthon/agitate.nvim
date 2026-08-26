@@ -2,7 +2,9 @@ local M = {}
 
 local ok, agitate_error = pcall(require, 'agitate.error')
 if not ok then
-  return vim.notify(require('agitate.const.error').import, vim.log.levels.ERROR)
+  local message = require('agitate.const.error').import
+  vim.notify(message, vim.log.levels.ERROR)
+  error(message, 0)
 end
 
 local parse_args = require('agitate.parse_args')
@@ -115,12 +117,18 @@ function M.confirm_prompt(branch, delete_remote, remote)
 end
 
 ---Delete a branch locally and, when it has one, its remote counterpart
----@param optional_parameters? table<string> Parameters can be passed in order or explicitly
+---@param optional_parameters? string[] Parameters can be passed in order or explicitly
 ---with their corresponding flags:
 ---  -b: The name of the branch to delete. Defaults to the current branch.
 ---  -r: The remote to delete it from. Defaults to `origin`.
 function M.Delete(optional_parameters)
-  local parameters, leftover = parse_args({ '-b', '-r' }, optional_parameters)
+  local parameters, leftover, incomplete = parse_args({ '-b', '-r' }, optional_parameters)
+
+  -- Without this, `:AgitateBranchDelete -b` falls through to the current
+  -- branch default and offers to delete something the user never named.
+  if #incomplete > 0 then
+    return agitate_error.throw('core.branch.Delete -- Error: missing a value for ' .. table.concat(incomplete, ' '))
+  end
 
   if #leftover > 0 then
     return agitate_error.throw('core.branch.Delete -- Error: unrecognised arguments: ' .. table.concat(leftover, ' '))
