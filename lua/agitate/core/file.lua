@@ -69,7 +69,11 @@ end
 ---@param lines string[] The contents
 ---@param description string What is being written, for the messages
 local function write_file(path, lines, description)
-  local exists = vim.fn.filereadable(path) == 1
+  -- `filereadable` answers "can I read this", not "is something here". An
+  -- existing but unreadable file answered no, so the overwrite confirmation
+  -- was skipped for exactly the paths where writing is most likely to be
+  -- wrong. `getftype` reports anything present, readable or not.
+  local exists = vim.fn.getftype(path) ~= ''
 
   if exists then
     local choice = vim.fn.confirm(path .. ' already exists. Replace it?', '&Replace\n&Cancel', 2, 'Question')
