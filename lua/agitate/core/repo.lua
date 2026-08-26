@@ -108,6 +108,98 @@ function M.Create(optional_parameters)
   end)
 end
 
+---Change the visibility of an existing repository on GitHub
+---@param optional_parameters? string[] Parameters can be passed in order or explicitly
+---with their corresponding flags:
+---  -v: The visibility to set. Either 'public' or 'private'. Required.
+---  -u: The owner. Defaults to the one in the `origin` remote.
+---  -r: The repository name. Defaults to the one in the `origin` remote.
+function M.Visibility(optional_parameters)
+  local options = require('agitate.config').options
+
+  -- Owner before repository: `parse_args` fills positionally in declaration
+  -- order, and GitHub names a repository `owner/repo`, so `public acme agitate`
+  -- has to mean acme's `agitate`, not `agitate`'s `acme`.
+  local parameters, leftover, incomplete = parse_args({
+    '-v',
+    '-u',
+    '-r',
+  }, optional_parameters)
+
+  -- Without this, `-u` with no value silently falls back to the `origin`
+  -- defaults, which is the opposite of what the user asked for.
+  if #incomplete > 0 then
+    return agitate_error.throw('core.repo.Visibility -- Error: missing a value for ' .. table.concat(incomplete, ' '))
+  end
+
+  if #leftover > 0 then
+    return agitate_error.throw('core.repo.Visibility -- Error: unrecognised arguments: ' .. table.concat(leftover, ' '))
+  end
+
+  local visibility = parameters['-v']
+
+  if visibility ~= 'public' and visibility ~= 'private' then
+    return agitate_error.throw('core.repo.Visibility -- Error: `-v` expects `public` or `private`, got `' .. tostring(visibility) .. '`')
+  end
+
+  -- The owner comes from `-u` or from the GitHub `origin` remote, never from
+  -- the configured username. Falling back to the configured account would let
+  -- `-r other-repo` outside a checkout silently target a different owner's
+  -- repository, which is not something a visibility change should guess at.
+  -- Only shell out when something is actually missing. With both `-u` and
+  -- `-r` given there is nothing to learn from the remote, and running git
+  -- anyway is noise outside a checkout.
+  local origin_owner, origin_repository
+
+  if not parameters['-u'] or not parameters['-r'] then
+    origin_owner, origin_repository = util.origin_repository()
+  end
+  local repository_name = parameters['-r'] or origin_repository
+  -- Named `owner` rather than `github_username`: it is the account that owns
+  -- the repository, which is not necessarily the configured one, and reusing
+  -- the other name is what made the unsafe fallback easy to reintroduce.
+  local owner = parameters['-u'] or origin_owner
+
+  if not owner or not repository_name then
+    return agitate_error.throw(
+      'core.repo.Visibility -- Error: could not determine which repository to change.'
+        .. '\nPass `-u` and `-r`, or run this inside a repository whose `origin` points at GitHub.'
+    )
+  end
+
+  local is_private = visibility == 'private'
+
+  -- Going public exposes the repository and anything in its history to
+  -- everyone, and it cannot be meaningfully undone once it has been seen,
+  -- forked or indexed. Going private is not a disclosure, so it does not ask.
+  if not is_private then
+    local choice = vim.fn.confirm(
+      'Make `' .. owner .. '/' .. repository_name .. '` public?' .. '\nEverything in it, including its full history, becomes visible to everyone.',
+      '&Make public\n&Cancel',
+      2,
+      'Question'
+    )
+
+    if choice ~= 1 then
+      return vim.notify('Visibility change cancelled.', vim.log.levels.INFO)
+    end
+  end
+
+  local github_access_token = options.github_access_token
+
+  if not github_access_token then
+    return agitate_error.throw('core.repo.Visibility -- Error: undefined GitHub access token')
+  end
+
+  github.set_repository_visibility(github_access_token, owner, repository_name, is_private, function(changed_ok, result)
+    if not changed_ok then
+      return agitate_error.throw(result)
+    end
+
+    vim.notify('`' .. owner .. '/' .. repository_name .. '` is now ' .. visibility .. '.', vim.log.levels.INFO)
+  end)
+end
+
 ---Initialize a new repository and push to GitHub
 ---@param optional_parameters? string[] The value at each index depends on the number of parameters passed:
 --- 1 optional_parameter: The name of the repository to create.

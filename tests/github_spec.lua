@@ -230,4 +230,42 @@ describe('service.github', function()
       assert.is_truthy(result.message:find('no `html_url`', 1, true))
     end)
   end)
+  describe('set_repository_visibility', function()
+    it('patches the repository with the requested visibility', function()
+      respond_with(true, { status = 200, body = { html_url = 'https://github.com/acme/agitate' }, raw = '{}' })
+
+      github.set_repository_visibility('token', 'acme', 'agitate', true, function() end)
+
+      assert.are.equal('PATCH', captured_request.method)
+      assert.are.equal('https://api.github.com/repos/acme/agitate', captured_request.url)
+      assert.are.same({ private = true }, captured_request.body)
+      -- An unauthenticated PATCH would 404 rather than change anything, so the
+      -- token reaching the transport is part of the contract.
+      assert.are.equal('token', captured_request.token)
+    end)
+
+    it('fails when a 200 carries no JSON body', function()
+      respond_with(true, { status = 200, body = nil, raw = '<html>proxy</html>' })
+
+      local changed_ok, result
+      github.set_repository_visibility('token', 'acme', 'agitate', true, function(value_ok, value)
+        changed_ok, result = value_ok, value
+      end)
+
+      assert.is_false(changed_ok)
+      assert.is_truthy(result.message:find('expected JSON', 1, true))
+    end)
+
+    it('reports the GitHub reason when the change is refused', function()
+      respond_with(true, { status = 403, body = { message = 'Must have admin rights' }, raw = '{}' })
+
+      local changed_ok, result
+      github.set_repository_visibility('token', 'acme', 'agitate', false, function(value_ok, value)
+        changed_ok, result = value_ok, value
+      end)
+
+      assert.is_false(changed_ok)
+      assert.is_truthy(result.message:find('Must have admin rights', 1, true))
+    end)
+  end)
 end)

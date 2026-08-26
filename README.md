@@ -36,6 +36,14 @@ You can easily verify what the commands are and what they do by looking at the
   This command basically does what GitHub tells you to do to contribute to a
   newly created repository.
 
+- `:AgitateRepoVisibility` - Change a repository between public and private.  
+  Takes `-v` for the visibility (`public` or `private`, required), `-u` for the
+  owner and `-r` for the repository, in that order if you pass them
+  positionally, so `public acme agitate` means acme's `agitate`. The repository and owner default to whatever the `origin`
+  remote points at, so inside a checkout you only need the visibility. Outside
+  one, or with a remote that is not GitHub, pass both `-u` and `-r`.  
+  Making a repository public asks for confirmation first.
+
 #### Branch
 
 - `:AgitateBranchCreateCheckoutAndPush` - Create a new branch from the current
@@ -133,7 +141,7 @@ Features planned for implementation
     - [x] Create Organization repository.
     - [x] Create private repository
 
-  - [ ] Add visibility function (change repo public / private)
+  - [x] Add visibility function (change repo public / private)
 
 - [ ] File generation functions:
   - [ ] Add `.gitiginore` from github template

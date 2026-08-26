@@ -175,4 +175,18 @@ function M.create_repository(access_token, options, callback)
   )
 end
 
+---Changes the visibility of an existing repository.
+---@param access_token string Your GitHub PAT
+---@param owner string The user or organization owning the repository
+---@param repository string The repository name
+---@param is_private boolean `true` makes the repository private, `false` public
+---@param callback fun(ok: boolean, result: table|AgitateError) Completion handler
+function M.set_repository_visibility(access_token, owner, repository, is_private, callback)
+  M.call(access_token, {
+    path = 'repos/' .. owner .. '/' .. repository,
+    method = 'PATCH',
+    body = { private = is_private },
+  }, 'change the visibility of `' .. owner .. '/' .. repository .. '`', 200, callback)
+end
+
 return M
