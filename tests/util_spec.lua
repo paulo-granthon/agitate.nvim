@@ -1,6 +1,5 @@
 describe('util', function()
   local util = require('agitate.util')
-
   describe('flatten_table', function()
     it('joins lines with a single space and no leading space', function()
       assert.are.equal('one two three', util.flatten_table({ 'one', 'two', 'three' }))
@@ -147,6 +146,7 @@ describe('util', function()
       assert.are.equal('https://github.com/octocat/hello', util.build_github_html_url('octocat', 'hello'))
     end)
   end)
+
   describe('encode_path_segment', function()
     it('leaves the unreserved set alone', function()
       assert.are.equal('mit-2.0_a~b', util.encode_path_segment('mit-2.0_a~b'))
@@ -159,6 +159,81 @@ describe('util', function()
       assert.are.equal('C%2B%2B', util.encode_path_segment('C++'))
       assert.are.equal('C%23', util.encode_path_segment('C#'))
       assert.are.equal('a%20b', util.encode_path_segment('a b'))
+    end)
+  end)
+
+  describe('buffer_directory', function()
+    it('returns the working directory for a buffer with no file', function()
+      local previous_buffer = vim.api.nvim_get_current_buf()
+
+      vim.api.nvim_set_current_buf(vim.api.nvim_create_buf(false, true))
+      local resolved = util.buffer_directory()
+      vim.api.nvim_set_current_buf(previous_buffer)
+
+      assert.are.equal(vim.fn.getcwd(), resolved)
+    end)
+
+    -- This is what decides which repository every git command acts on, so the
+    -- buffer has to win over the working directory.
+    it("returns the current buffer's directory, not the working directory", function()
+      local directory = vim.fn.tempname()
+      vim.fn.mkdir(directory, 'p')
+      vim.fn.writefile({ 'x' }, directory .. '/file.txt')
+
+      local previous_buffer = vim.api.nvim_get_current_buf()
+
+      vim.cmd('edit ' .. vim.fn.fnameescape(directory .. '/file.txt'))
+      local resolved = util.buffer_directory()
+      vim.api.nvim_set_current_buf(previous_buffer)
+
+      assert.are.equal(vim.fn.resolve(directory), vim.fn.resolve(resolved))
+    end)
+  end)
+
+  describe('git', function()
+    ---Builds a repository on `branch_name` with one commit.
+    local function repository(branch_name)
+      local directory = vim.fn.tempname()
+
+      vim.fn.mkdir(directory, 'p')
+      vim.fn.system({ 'git', '-C', directory, 'init', '-b', branch_name })
+      vim.fn.system({
+        'git',
+        '-C',
+        directory,
+        '-c',
+        'user.name=agitate tests',
+        '-c',
+        'user.email=tests@agitate.invalid',
+        'commit',
+        '--allow-empty',
+        '-m',
+        'init',
+        '--no-gpg-sign',
+      })
+
+      return directory
+    end
+
+    it('reports success and failure', function()
+      local directory = repository('main')
+
+      local _, ok = util.git({ 'rev-parse', 'HEAD' }, directory)
+      assert.is_true(ok)
+
+      local output, failed = util.git({ 'branch', '-d', 'no-such-branch' }, directory)
+      assert.is_false(failed)
+      -- git writes this to stderr, which a stdout-only runner would have lost.
+      assert.is_truthy(table.concat(output, '\n'):lower():find('not found'))
+    end)
+
+    it('runs in the directory it is given', function()
+      local directory = repository('given-repo')
+
+      local output, ok = util.git({ 'symbolic-ref', '--short', 'HEAD' }, directory)
+
+      assert.is_true(ok)
+      assert.are.equal('given-repo', output[1])
     end)
   end)
 end)
