@@ -187,10 +187,15 @@ function M.Init(optional_parameters)
     local command = { 'git' }
     vim.list_extend(command, step)
 
-    local output = vim.fn.systemlist(command)
+    -- `vim.system` rather than `systemlist`, which captures stdout only. git
+    -- reports almost every failure on stderr, so a failed step would otherwise
+    -- name the command and explain nothing.
+    local completed = vim.system(command, { text = true }):wait()
 
-    if vim.v.shell_error ~= 0 then
-      return agitate_error.throw('core.repo.Init -- Error: `git ' .. table.concat(step, ' ') .. '` failed.\n' .. table.concat(output, '\n'))
+    if completed.code ~= 0 then
+      local detail = (completed.stderr ~= nil and completed.stderr ~= '') and completed.stderr or (completed.stdout or '')
+
+      return agitate_error.throw('core.repo.Init -- Error: `git ' .. table.concat(step, ' ') .. '` failed.\n' .. detail)
     end
   end
 
