@@ -160,8 +160,8 @@ Features planned for implementation
   - [ ] Add visibility function (change repo public / private)
 
 - [ ] File generation functions:
-  - [x] Add `.gitignore` from github template
-  - [x] Add `LICENSE` from github template
+  - [x] Add `.gitignore` from GitHub template
+  - [x] Add `LICENSE` from GitHub template
 
   - [x] Add `FUNDING.yml`
   - [ ] Add `MAINTAINERS.md` (?)

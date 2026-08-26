@@ -2,12 +2,15 @@ local M = {}
 
 local ok, agitate_error = pcall(require, 'agitate.error')
 if not ok then
-  return vim.notify(require('agitate.const.error').import, vim.log.levels.ERROR)
+  local message = require('agitate.const.error').import
+  vim.notify(message, vim.log.levels.ERROR)
+  error(message, 0)
 end
 
 local github_ok, github_or_err = pcall(require, 'agitate.service.github')
 if not github_ok then
-  return agitate_error.throw(github_or_err)
+  agitate_error.throw(github_or_err)
+  error(github_or_err, 0)
 end
 
 local github = github_or_err
@@ -115,7 +118,14 @@ function M.Gitignore(optional_parameters)
         return agitate_error.throw(result)
       end
 
-      write_file(cwd_path('.gitignore'), vim.split(result.source or '', '\n'), 'the ' .. template .. ' gitignore template')
+      -- An empty or missing `source` would write an empty `.gitignore`, and
+      -- since this replaces an existing file after confirmation, silently
+      -- emptying one is worse than refusing. The LICENSE path already refuses.
+      if type(result.source) ~= 'string' or not result.source:match('%S') then
+        return agitate_error.throw('core.file.Gitignore -- Error: GitHub returned no content for the `' .. template .. '` template.')
+      end
+
+      write_file(cwd_path('.gitignore'), vim.split(result.source, '\n'), 'the ' .. template .. ' gitignore template')
     end)
   end
 
