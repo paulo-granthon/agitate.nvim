@@ -184,7 +184,14 @@ function M.open_url(url)
     return false, 'no URL to open'
   end
 
-  vim.ui.open(url)
+  -- `vim.ui.open` raises when it cannot find an opener, which depends on the
+  -- platform and the user's configuration, so the caller gets a reason rather
+  -- than a traceback from inside the UI layer.
+  local opened, err = pcall(vim.ui.open, url)
+
+  if not opened then
+    return false, tostring(err)
+  end
 
   return true
 end
