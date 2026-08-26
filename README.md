@@ -40,7 +40,8 @@ You can easily verify what the commands are and what they do by looking at the
   Takes `-v` for the visibility (`public` or `private`, required), `-r` for the
   repository and `-u` for the owner, in that order if you pass them
   positionally. The repository and owner default to whatever the `origin`
-  remote points at, so inside a checkout you only need the visibility.  
+  remote points at, so inside a checkout you only need the visibility. Outside
+  one, or with a remote that is not GitHub, pass `-u` explicitly.  
   Making a repository public asks for confirmation first.
 
 #### Branch

@@ -128,9 +128,13 @@ function M.Visibility(optional_parameters)
     return agitate_error.throw('core.repo.Visibility -- Error: `-v` expects `public` or `private`, got `' .. tostring(visibility) .. '`')
   end
 
+  -- The owner comes from `-u` or from the GitHub `origin` remote, never from
+  -- the configured username. Falling back to the configured account would let
+  -- `-r other-repo` outside a checkout silently target a different owner's
+  -- repository, which is not something a visibility change should guess at.
   local origin_owner, origin_repository = util.origin_repository()
   local repository_name = parameters['-r'] or origin_repository
-  local github_username = parameters['-u'] or origin_owner or options.github_username
+  local github_username = parameters['-u'] or origin_owner
 
   if not github_username or not repository_name then
     return agitate_error.throw(
