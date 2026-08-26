@@ -84,9 +84,12 @@ function M.open(opts, callback)
     })
   end
 
+  -- Deliberately not `once`. An empty buffer submits nothing and returns, and
+  -- with `once` that first write also removed the handler, so the user could
+  -- type the issue and write again to no effect at all. On success the buffer
+  -- is deleted, which takes the autocommand with it.
   vim.api.nvim_create_autocmd('BufWriteCmd', {
     buffer = buffer,
-    once = true,
     callback = function()
       local title, body = M.parse(vim.api.nvim_buf_get_lines(buffer, 0, -1, false))
 

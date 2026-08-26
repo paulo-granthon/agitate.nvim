@@ -88,8 +88,10 @@ end
 local function pull_number(value, command)
   local number = tonumber(value)
 
-  if not number then
-    agitate_error.throw(command .. ' -- Error: expected a pull request number, got `' .. tostring(value) .. '`')
+  -- Pull request numbers are positive integers. `3.14`, `0` and `-1` all
+  -- survive `tonumber` and would build a path GitHub cannot answer.
+  if not number or number < 1 or number % 1 ~= 0 then
+    agitate_error.throw(command .. ' -- Error: expected a positive pull request number, got `' .. tostring(value) .. '`')
 
     return nil
   end

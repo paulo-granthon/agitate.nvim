@@ -28,7 +28,6 @@ describe('service.github', function()
   after_each(function()
     http.request = original_request
   end)
-
   describe('describe_failure', function()
     it('surfaces both the top level message and the field level reason', function()
       local raw, body = fixture('repo_create_error')
@@ -216,6 +215,96 @@ describe('service.github', function()
       assert.is_truthy(result.message:find('no `html_url`', 1, true))
     end)
   end)
+
+  describe('get_all', function()
+    ---Answers each request with the next canned page.
+    local function respond_with_pages(pages)
+      local seen = 0
+
+      http.request = function(request, callback)
+        seen = seen + 1
+        captured_request = request
+        callback(true, { status = 200, body = pages[seen] or {}, raw = '[]' })
+      end
+
+      return function()
+        return seen
+      end
+    end
+
+    it('returns a single short page as is', function()
+      respond_with_pages({ { { id = 1 }, { id = 2 } } })
+
+      local result
+      github.get_all('token', 'repos/acme/thing/issues', 'list', function(_, value)
+        result = value
+      end)
+
+      assert.are.equal(2, #result)
+    end)
+
+    -- A full page is how GitHub signals there may be more; stopping there is
+    -- what silently truncated every list.
+    it('keeps paging while pages come back full', function()
+      local full = {}
+      for index = 1, 100 do
+        full[index] = { id = index }
+      end
+
+      local requests = respond_with_pages({ full, { { id = 101 } } })
+
+      local result
+      github.get_all('token', 'repos/acme/thing/issues', 'list', function(_, value)
+        result = value
+      end)
+
+      assert.are.equal(2, requests())
+      assert.are.equal(101, #result)
+    end)
+
+    it('appends the page parameters with & when the path already has a query', function()
+      respond_with_pages({ {} })
+
+      github.get_all('token', 'repos/acme/thing/issues?state=open', 'list', function() end)
+
+      assert.is_truthy(captured_request.url:find('state=open&per_page=100&page=1', 1, true))
+    end)
+
+    it('appends them with ? when the path has no query', function()
+      respond_with_pages({ {} })
+
+      github.get_all('token', 'repos/acme/thing/issues', 'list', function() end)
+
+      assert.is_truthy(captured_request.url:find('issues?per_page=100&page=1', 1, true))
+    end)
+
+    it('passes a failure through instead of returning a partial list', function()
+      respond_with(false, { message = 'curl exited with code 6' })
+
+      local list_ok, result
+      github.get_all('token', 'repos/acme/thing/issues', 'list', function(value_ok, value)
+        list_ok, result = value_ok, value
+      end)
+
+      assert.is_false(list_ok)
+      assert.are.equal('curl exited with code 6', result.message)
+    end)
+  end)
+
+  describe('list_comments', function()
+    -- `core.pr` called this and it did not exist on that branch, so viewing a
+    -- pull request errored at runtime. It lives here because both the issue
+    -- and pull request features need it.
+    it('reads the issues comments endpoint for either kind', function()
+      respond_with(true, { status = 200, body = {}, raw = '[]' })
+
+      github.list_comments('token', 'acme', 'thing', 9, function() end)
+
+      assert.is_truthy(captured_request.url:find('repos/acme/thing/issues/9/comments', 1, true))
+      assert.are.equal('token', captured_request.token)
+    end)
+  end)
+
   describe('create_pull_request', function()
     it('posts the title, body, head and base', function()
       respond_with(true, { status = 201, body = { number = 3 }, raw = '{}' })
@@ -265,6 +354,31 @@ describe('service.github', function()
 
       assert.is_truthy(captured_request.url:find('repos/acme/thing/pulls', 1, true))
       assert.is_truthy(captured_request.url:find('state=all', 1, true))
+    end)
+  end)
+  describe('get_pull_request', function()
+    -- Merging fetches the pull request first, because the list endpoint does
+    -- not compute `mergeable`. A wrong URL here would send every merge
+    -- decision through the failure path.
+    it('reads the single pull request endpoint', function()
+      respond_with(true, { status = 200, body = { number = 12 }, raw = '{}' })
+
+      github.get_pull_request('token', 'acme', 'thing', 12, function() end)
+
+      assert.are.equal('https://api.github.com/repos/acme/thing/pulls/12', captured_request.url)
+      assert.are.equal('token', captured_request.token)
+    end)
+
+    it('reports the GitHub reason when the pull request cannot be read', function()
+      respond_with(true, { status = 404, body = { message = 'Not Found' }, raw = '{}' })
+
+      local read_ok, result
+      github.get_pull_request('token', 'acme', 'thing', 12, function(value_ok, value)
+        read_ok, result = value_ok, value
+      end)
+
+      assert.is_false(read_ok)
+      assert.is_truthy(result.message:find('Not Found', 1, true))
     end)
   end)
 end)

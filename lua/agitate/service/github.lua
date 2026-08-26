@@ -2,20 +2,30 @@ local M = {}
 
 local ok, agitate_error = pcall(require, 'agitate.error')
 if not ok then
-  return vim.notify(require('agitate.const.error').import, vim.log.levels.ERROR)
+  local message = require('agitate.const.error').import
+  vim.notify(message, vim.log.levels.ERROR)
+  error(message, 0)
 end
 
 local http_ok, http_or_err = pcall(require, 'agitate.service.http')
 if not http_ok then
-  return agitate_error.throw(http_or_err)
+  agitate_error.throw(http_or_err)
+  error(http_or_err, 0)
 end
 
 local types_ok, types_or_err = pcall(require, 'agitate.types.github')
 if not types_ok then
-  return agitate_error.throw(types_or_err)
+  agitate_error.throw(types_or_err)
+  error(types_or_err, 0)
 end
 
 local http = http_or_err
+
+---GitHub's hard ceiling for a page of results.
+local PER_PAGE = 100
+
+---How many pages a list command will walk before reporting a truncated list.
+local MAX_PAGES = 10
 
 ---Builds a readable message from a GitHub error response.
 ---
@@ -27,7 +37,10 @@ local http = http_or_err
 ---@param response HttpResponse The response that failed
 ---@return string
 function M.describe_failure(action, response)
-  local body = response.body or {}
+  -- A JSON body is usually an object, but a proxy or a malformed endpoint can
+  -- return a bare number or string, and indexing one of those throws while
+  -- trying to format the very error being reported.
+  local body = type(response.body) == 'table' and response.body or {}
   local reasons = {}
 
   if body.message then
@@ -151,6 +164,67 @@ function M.create_repository(access_token, options, callback)
   )
 end
 
+---Fetches every page of a list endpoint.
+---
+---GitHub caps a page at 100 regardless of what is asked for, so a single
+---request silently truncates any longer list. Pages until a short page comes
+---back, which is how the API signals the end.
+---
+---Bounded at `MAX_PAGES`. A repository large enough to hit that is possible,
+---and stopping silently would read as "this is everything", so the caller is
+---told when the list was cut short.
+---@param access_token string|nil
+---@param path string An API path, with or without an existing query string
+---@param action string
+---@param callback fun(ok: boolean, result: table[]|AgitateError)
+function M.get_all(access_token, path, action, callback)
+  local collected = {}
+  local separator = path:find('?', 1, true) and '&' or '?'
+
+  local function fetch(page)
+    M.get(access_token, path .. separator .. 'per_page=' .. PER_PAGE .. '&page=' .. page, action, function(page_ok, result)
+      if not page_ok then
+        return callback(false, result)
+      end
+
+      if type(result) ~= 'table' then
+        return callback(false, { message = 'service.github -- Error: expected a list from `' .. path .. '`.' })
+      end
+
+      for _, item in ipairs(result) do
+        collected[#collected + 1] = item
+      end
+
+      if #result < PER_PAGE then
+        return callback(true, collected)
+      end
+
+      if page >= MAX_PAGES then
+        vim.notify('Agitate: showing the first ' .. #collected .. ' results only, there are more.', vim.log.levels.WARN)
+
+        return callback(true, collected)
+      end
+
+      fetch(page + 1)
+    end)
+  end
+
+  fetch(1)
+end
+
+---Fetches the comments on an issue or pull request.
+---
+---GitHub models a pull request as an issue for conversation comments, so this
+---one function serves both and neither feature needs its own.
+---@param access_token string
+---@param owner string
+---@param repository string
+---@param number number The issue or pull request number
+---@param callback fun(ok: boolean, result: table[]|AgitateError)
+function M.list_comments(access_token, owner, repository, number, callback)
+  M.get_all(access_token, 'repos/' .. owner .. '/' .. repository .. '/issues/' .. number .. '/comments', 'read the comments on #' .. number, callback)
+end
+
 ---Fetches a repository, which is how the default branch is discovered.
 ---@param access_token string
 ---@param owner string
@@ -185,9 +259,9 @@ end
 ---@param state string `open`, `closed` or `all`
 ---@param callback fun(ok: boolean, result: table[]|AgitateError)
 function M.list_pull_requests(access_token, owner, repository, state, callback)
-  M.get(
+  M.get_all(
     access_token,
-    'repos/' .. owner .. '/' .. repository .. '/pulls?state=' .. state .. '&per_page=100',
+    'repos/' .. owner .. '/' .. repository .. '/pulls?state=' .. state,
     'list the pull requests of `' .. owner .. '/' .. repository .. '`',
     callback
   )
