@@ -37,9 +37,9 @@ You can easily verify what the commands are and what they do by looking at the
   newly created repository.
 
 - `:AgitateRepoVisibility` - Change a repository between public and private.  
-  Takes `-v` for the visibility (`public` or `private`, required), `-r` for the
-  repository and `-u` for the owner, in that order if you pass them
-  positionally. The repository and owner default to whatever the `origin`
+  Takes `-v` for the visibility (`public` or `private`, required), `-u` for the
+  owner and `-r` for the repository, in that order if you pass them
+  positionally, so `public acme agitate` means acme's `agitate`. The repository and owner default to whatever the `origin`
   remote points at, so inside a checkout you only need the visibility. Outside
   one, or with a remote that is not GitHub, pass both `-u` and `-r`.  
   Making a repository public asks for confirmation first.

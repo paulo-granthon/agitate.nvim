@@ -112,15 +112,18 @@ end
 ---@param optional_parameters? string[] Parameters can be passed in order or explicitly
 ---with their corresponding flags:
 ---  -v: The visibility to set. Either 'public' or 'private'. Required.
----  -r: The repository name. Defaults to the one in the `origin` remote.
 ---  -u: The owner. Defaults to the one in the `origin` remote.
+---  -r: The repository name. Defaults to the one in the `origin` remote.
 function M.Visibility(optional_parameters)
   local options = require('agitate.config').options
 
+  -- Owner before repository: `parse_args` fills positionally in declaration
+  -- order, and GitHub names a repository `owner/repo`, so `public acme agitate`
+  -- has to mean acme's `agitate`, not `agitate`'s `acme`.
   local parameters, leftover, incomplete = parse_args({
     '-v',
-    '-r',
     '-u',
+    '-r',
   }, optional_parameters)
 
   -- Without this, `-u` with no value silently falls back to the `origin`
