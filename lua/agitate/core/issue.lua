@@ -77,8 +77,11 @@ end
 local function issue_number(value, command)
   local number = tonumber(value)
 
-  if not number then
-    agitate_error.throw(command .. ' -- Error: expected an issue number, got `' .. tostring(value) .. '`')
+  -- Issue numbers are positive integers. `3.14`, `0` and `-1` all survive
+  -- `tonumber` and would go on to build a path GitHub cannot answer, so the
+  -- mistake is worth naming here rather than as a 404 later.
+  if not number or number < 1 or number % 1 ~= 0 then
+    agitate_error.throw(command .. ' -- Error: expected a positive issue number, got `' .. tostring(value) .. '`')
 
     return nil
   end

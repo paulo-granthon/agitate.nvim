@@ -62,6 +62,9 @@ function M.open(opts)
   end
 
   vim.api.nvim_buf_set_lines(buffer, 0, -1, false, lines)
+  -- `nvim_buf_set_lines` marks the buffer changed, so a buffer nobody can
+  -- edit would otherwise sit there showing `[+]`.
+  vim.api.nvim_set_option_value('modified', false, { buf = buffer })
   vim.api.nvim_set_option_value('modifiable', false, { buf = buffer })
 
   vim.api.nvim_win_set_buf(0, buffer)

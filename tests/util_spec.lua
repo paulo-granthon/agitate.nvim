@@ -71,6 +71,20 @@ describe('util', function()
       assert.are.equal('agitate.nvim', repository)
     end)
 
+    it('parses the full ssh url form', function()
+      local owner, repository = util.parse_github_remote('ssh://git@github.com/octocat/hello.git')
+
+      assert.are.equal('octocat', owner)
+      assert.are.equal('hello', repository)
+    end)
+
+    it('parses the full ssh url form with a port', function()
+      local owner, repository = util.parse_github_remote('ssh://git@github.com:443/octocat/hello.git')
+
+      assert.are.equal('octocat', owner)
+      assert.are.equal('hello', repository)
+    end)
+
     it('returns nil for a remote that is not GitHub', function()
       local owner, repository = util.parse_github_remote('https://gitlab.com/octocat/hello.git')
 
@@ -85,13 +99,60 @@ describe('util', function()
   end)
 
   describe('origin_repository', function()
-    -- Agitate's own checkout has a GitHub origin, so this runs the real
-    -- command rather than a stub.
-    it('reads the owner and repository from the current checkout', function()
-      local owner, repository = util.origin_repository()
+    ---Creates a repository with a known `origin` and moves into it.
+    ---
+    ---Asserting against Agitate's own checkout passed here and would fail for
+    ---anyone who forked the repository, cloned it under a different remote, or
+    ---ran the suite from a mirror. A scratch repository makes the expected
+    ---owner a property of the test rather than of whoever is running it.
+    local function with_origin(url, body)
+      local previous = vim.fn.getcwd()
+      local directory = vim.fn.tempname()
 
-      assert.are.equal('paulo-granthon', owner)
-      assert.are.equal('agitate.nvim', repository)
+      vim.fn.mkdir(directory, 'p')
+      vim.fn.system({ 'git', '-C', directory, 'init' })
+
+      if url then
+        vim.fn.system({ 'git', '-C', directory, 'remote', 'add', 'origin', url })
+      end
+
+      vim.fn.chdir(directory)
+
+      local called_ok, err = pcall(body)
+
+      vim.fn.chdir(previous)
+
+      assert(called_ok, err)
+    end
+
+    it('reads the owner and repository from an https origin', function()
+      with_origin('https://github.com/octocat/hello.git', function()
+        local owner, repository = util.origin_repository()
+
+        assert.are.equal('octocat', owner)
+        assert.are.equal('hello', repository)
+      end)
+    end)
+
+    it('reads them from an ssh origin', function()
+      with_origin('git@github.com:octocat/hello.git', function()
+        local owner, repository = util.origin_repository()
+
+        assert.are.equal('octocat', owner)
+        assert.are.equal('hello', repository)
+      end)
+    end)
+
+    it('returns nil when origin is not a GitHub remote', function()
+      with_origin('https://gitlab.com/octocat/hello.git', function()
+        assert.is_nil(util.origin_repository())
+      end)
+    end)
+
+    it('returns nil when there is no origin at all', function()
+      with_origin(nil, function()
+        assert.is_nil(util.origin_repository())
+      end)
     end)
   end)
 

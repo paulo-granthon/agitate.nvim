@@ -28,7 +28,6 @@ describe('service.github', function()
   after_each(function()
     http.request = original_request
   end)
-
   describe('describe_failure', function()
     it('surfaces both the top level message and the field level reason', function()
       local raw, body = fixture('repo_create_error')
@@ -216,6 +215,96 @@ describe('service.github', function()
       assert.is_truthy(result.message:find('no `html_url`', 1, true))
     end)
   end)
+
+  describe('get_all', function()
+    ---Answers each request with the next canned page.
+    local function respond_with_pages(pages)
+      local seen = 0
+
+      http.request = function(request, callback)
+        seen = seen + 1
+        captured_request = request
+        callback(true, { status = 200, body = pages[seen] or {}, raw = '[]' })
+      end
+
+      return function()
+        return seen
+      end
+    end
+
+    it('returns a single short page as is', function()
+      respond_with_pages({ { { id = 1 }, { id = 2 } } })
+
+      local result
+      github.get_all('token', 'repos/acme/thing/issues', 'list', function(_, value)
+        result = value
+      end)
+
+      assert.are.equal(2, #result)
+    end)
+
+    -- A full page is how GitHub signals there may be more; stopping there is
+    -- what silently truncated every list.
+    it('keeps paging while pages come back full', function()
+      local full = {}
+      for index = 1, 100 do
+        full[index] = { id = index }
+      end
+
+      local requests = respond_with_pages({ full, { { id = 101 } } })
+
+      local result
+      github.get_all('token', 'repos/acme/thing/issues', 'list', function(_, value)
+        result = value
+      end)
+
+      assert.are.equal(2, requests())
+      assert.are.equal(101, #result)
+    end)
+
+    it('appends the page parameters with & when the path already has a query', function()
+      respond_with_pages({ {} })
+
+      github.get_all('token', 'repos/acme/thing/issues?state=open', 'list', function() end)
+
+      assert.is_truthy(captured_request.url:find('state=open&per_page=100&page=1', 1, true))
+    end)
+
+    it('appends them with ? when the path has no query', function()
+      respond_with_pages({ {} })
+
+      github.get_all('token', 'repos/acme/thing/issues', 'list', function() end)
+
+      assert.is_truthy(captured_request.url:find('issues?per_page=100&page=1', 1, true))
+    end)
+
+    it('passes a failure through instead of returning a partial list', function()
+      respond_with(false, { message = 'curl exited with code 6' })
+
+      local list_ok, result
+      github.get_all('token', 'repos/acme/thing/issues', 'list', function(value_ok, value)
+        list_ok, result = value_ok, value
+      end)
+
+      assert.is_false(list_ok)
+      assert.are.equal('curl exited with code 6', result.message)
+    end)
+  end)
+
+  describe('list_comments', function()
+    -- `core.pr` called this and it did not exist on that branch, so viewing a
+    -- pull request errored at runtime. It lives here because both the issue
+    -- and pull request features need it.
+    it('reads the issues comments endpoint for either kind', function()
+      respond_with(true, { status = 200, body = {}, raw = '[]' })
+
+      github.list_comments('token', 'acme', 'thing', 9, function() end)
+
+      assert.is_truthy(captured_request.url:find('repos/acme/thing/issues/9/comments', 1, true))
+      assert.are.equal('token', captured_request.token)
+    end)
+  end)
+
   describe('list_issues', function()
     -- GitHub's issues endpoint also returns pull requests. Any entry with a
     -- `pull_request` key is one, and an issue list showing them would be wrong.
@@ -240,13 +329,14 @@ describe('service.github', function()
       assert.are.equal(3, result[2].number)
     end)
 
-    it('requests the given state', function()
+    it('requests the given state and pages the results', function()
       respond_with(true, { status = 200, body = {}, raw = '[]' })
 
       github.list_issues('token', 'acme', 'thing', 'closed', function() end)
 
       assert.is_truthy(captured_request.url:find('state=closed', 1, true))
       assert.is_truthy(captured_request.url:find('repos/acme/thing/issues', 1, true))
+      assert.is_truthy(captured_request.url:find('per_page=100&page=1', 1, true))
     end)
 
     it('passes a failure through without filtering it', function()
@@ -271,6 +361,20 @@ describe('service.github', function()
       assert.are.equal('POST', captured_request.method)
       assert.are.equal('https://api.github.com/repos/acme/thing/issues', captured_request.url)
       assert.are.same({ title = 'Fix it', body = 'Please.' }, captured_request.body)
+    end)
+
+    -- The caller announces the new issue by concatenating both of these, so a
+    -- success missing either would crash while reporting itself.
+    it('rejects a success that carries no number or html_url', function()
+      respond_with(true, { status = 201, body = { title = 'Fix it' }, raw = '{}' })
+
+      local created_ok, result
+      github.create_issue('token', 'acme', 'thing', { title = 'Fix it', body = '' }, function(value_ok, value)
+        created_ok, result = value_ok, value
+      end)
+
+      assert.is_false(created_ok)
+      assert.is_truthy(result.message:find('no `number` or `html_url`', 1, true))
     end)
   end)
 

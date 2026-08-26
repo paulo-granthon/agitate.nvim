@@ -16,12 +16,16 @@ end
 local API_VERSION = '2022-11-28'
 
 ---Escapes a value for use inside a double quoted curl config entry.
----curl understands the usual backslash escapes there, so a literal
----backslash and a literal quote are all that need handling.
+---
+---curl reads its config a line at a time, so a carriage return or newline in
+---the value would end the entry early and let the remainder be parsed as
+---further config directives. They are stripped rather than escaped, because a
+---credential legitimately containing one does not exist and silently carrying
+---it through would only produce an auth failure nobody could diagnose.
 ---@param value string
 ---@return string
 local function escape_config_value(value)
-  return (value:gsub('\\', '\\\\'):gsub('"', '\\"'))
+  return (value:gsub('[\r\n]', ''):gsub('\\', '\\\\'):gsub('"', '\\"'))
 end
 
 ---Builds the curl configuration handed to the process on stdin.
