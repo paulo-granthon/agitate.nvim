@@ -191,7 +191,9 @@ function M.Create(optional_parameters)
       end
 
       editor.open({
-        name = 'agitate://pr/new',
+        -- Repository qualified so two repositories do not collide on one
+        -- buffer name.
+        name = 'agitate://pr/' .. resolved.owner .. '/' .. resolved.repository .. '/new',
         help = {
           head .. ' into ' .. base,
           'First line is the title, the rest is the body.',
@@ -308,7 +310,7 @@ end
 ---@param number number
 function M._comment(resolved, number)
   editor.open({
-    name = 'agitate://pr/' .. number .. '/comment',
+    name = 'agitate://pr/' .. resolved.owner .. '/' .. resolved.repository .. '/' .. number .. '/comment',
     -- `raw` because a comment has no title. Without it the buffer went through
     -- the title split, which trimmed the first line and collapsed the blank
     -- line after it, contradicting the help text below.

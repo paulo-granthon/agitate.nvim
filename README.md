@@ -39,8 +39,9 @@ You can easily verify what the commands are and what they do by looking at the
 
 #### Pr
 
-Like the issue commands, these work out the repository from the `origin`
-remote. `-u` and `-r` override the owner and repository anywhere below.
+These work out the repository from the `origin` remote, so inside a checkout
+you rarely need to name it. `-u` and `-r` override the owner and repository
+anywhere below.
 
 - `:AgitatePrCreate` - Open a new pull request.  
   Takes `-H` for the head branch and `-B` for the base. Head defaults to the
@@ -167,8 +168,8 @@ Features planned for implementation
   - [ ] Add `FUNDING.yml`
   - [ ] Add `MAINTAINERS.md` (?)
 
-- [x] Issues & PRs:
-  - [x] Open, list, view, comment on, close and reopen issues.
+- [ ] Issues & PRs:
+  - [ ] Open, list, view, comment on, close and reopen issues.
   - [x] Open, list, view, comment on and merge pull requests.
 
 - [ ] Project functions:
