@@ -167,7 +167,9 @@ function M.List(optional_parameters)
       end
 
       list.open({
-        name = 'agitate://issues/' .. resolved.owner .. '/' .. resolved.repository,
+        -- State included: listing open and closed issues for the same
+        -- repository otherwise produced two buffers with one name.
+        name = 'agitate://issues/' .. resolved.owner .. '/' .. resolved.repository .. '?state=' .. state,
         entries = issues,
         help = {
           '<CR> view   o open in browser   c comment   x close   q quit',
