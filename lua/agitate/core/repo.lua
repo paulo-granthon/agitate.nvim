@@ -143,7 +143,14 @@ function M.Visibility(optional_parameters)
   -- the configured username. Falling back to the configured account would let
   -- `-r other-repo` outside a checkout silently target a different owner's
   -- repository, which is not something a visibility change should guess at.
-  local origin_owner, origin_repository = util.origin_repository()
+  -- Only shell out when something is actually missing. With both `-u` and
+  -- `-r` given there is nothing to learn from the remote, and running git
+  -- anyway is noise outside a checkout.
+  local origin_owner, origin_repository
+
+  if not parameters['-u'] or not parameters['-r'] then
+    origin_owner, origin_repository = util.origin_repository()
+  end
   local repository_name = parameters['-r'] or origin_repository
   -- Named `owner` rather than `github_username`: it is the account that owns
   -- the repository, which is not necessarily the configured one, and reusing
