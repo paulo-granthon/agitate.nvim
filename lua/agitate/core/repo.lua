@@ -165,7 +165,13 @@ function M.Init(optional_parameters)
   -- The option is documented and typed as optional, so an absent value means
   -- the default rather than a mistake. Only a value that is present and wrong
   -- is worth refusing.
-  local protocol = options.repo.init.remote_protocol or 'https'
+  -- `== nil` rather than `or`: only an absent value means the default. `or`
+  -- also swallowed `false`, which is a misconfiguration the check below exists
+  -- to report.
+  local protocol = options.repo.init.remote_protocol
+  if protocol == nil then
+    protocol = 'https'
+  end
 
   if protocol ~= 'https' and protocol ~= 'ssh' then
     return agitate_error.throw('core.repo.Init -- Error: `repo.init.remote_protocol` expects `https` or `ssh`, got `' .. tostring(protocol) .. '`')
@@ -183,10 +189,18 @@ function M.Init(optional_parameters)
   -- configured and a `"` in it broke the quoting, while `|` in any of them is
   -- an Ex separator that would run the remainder as a second command. An
   -- argument vector is parsed by neither Ex nor a shell.
+  -- Defaulted rather than passed through: the option is optional, and a nil
+  -- would produce `git commit -m` with no message and a git usage error that
+  -- says nothing about Agitate's configuration.
+  local commit_message = options.repo.init.first_commit_message
+  if type(commit_message) ~= 'string' or commit_message == '' then
+    commit_message = 'first commit'
+  end
+
   local steps = {
     { 'init' },
     { 'add', 'README.md' },
-    { 'commit', '-m', options.repo.init.first_commit_message },
+    { 'commit', '-m', commit_message },
     { 'branch', '-M', 'main' },
     { 'remote', 'add', 'origin', util.build_github_remote_url(github_username, github_repository_name, protocol) },
     { 'push', '-u', 'origin', 'main' },
