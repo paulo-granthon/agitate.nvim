@@ -7,6 +7,7 @@ if not ok then
   error(message, 0)
 end
 
+local util = require('agitate.util')
 local parse_args = require('agitate.parse_args')
 
 function M.CreateCheckoutAndPush(branch_name)
@@ -19,13 +20,13 @@ function M.CreateCheckoutAndPush(branch_name)
   -- an option. git itself refuses to create a branch whose name starts with
   -- `-`, and `parse_args` will not accept such a value either, so this is
   -- defence in depth rather than a reachable hole today.
-  local checkout_output, checkout_ok = M._git({ 'checkout', '-b', branch_name })
+  local checkout_output, checkout_ok = util.git({ 'checkout', '-b', branch_name })
 
   if not checkout_ok then
     return agitate_error.throw('core.branch.CreateCheckoutAndPush -- Error: could not create `' .. branch_name .. '`.\n' .. table.concat(checkout_output, '\n'))
   end
 
-  local push_output, push_ok = M._git({ 'push', '-u', 'origin', '--', branch_name })
+  local push_output, push_ok = util.git({ 'push', '-u', 'origin', '--', branch_name })
 
   if not push_ok then
     return agitate_error.throw(
@@ -43,54 +44,16 @@ end
 ---@param argv string[] The git command, without the leading `git`
 ---@return string[] output
 ---@return boolean ok
----Returns the directory git should run in.
----
----The current buffer's directory, not the working directory. Fugitive resolved
----the repository from the buffer, so replacing `:G` with a direct call changed
----which repository these commands act on whenever `:cd` had moved elsewhere.
----Falls back to the working directory for a buffer with no file, such as the
----list and editor scratch buffers.
----@return string
-local function working_directory()
-  local buffer_path = vim.api.nvim_buf_get_name(0)
-
-  if buffer_path == '' then
-    return vim.fn.getcwd()
-  end
-
-  local directory = vim.fn.fnamemodify(buffer_path, ':p:h')
-
-  return vim.fn.isdirectory(directory) == 1 and directory or vim.fn.getcwd()
-end
-
-function M._git(argv)
-  local command = { 'git', '-C', working_directory() }
-  vim.list_extend(command, argv)
-
-  -- `vim.system` rather than `systemlist`, which captures stdout only. git
-  -- writes almost every failure to stderr, so a refused delete reported an
-  -- empty reason and the user saw only that something went wrong.
-  local completed = vim.system(command, { text = true }):wait()
-
-  local merged = {}
-  for _, stream in ipairs({ completed.stdout, completed.stderr }) do
-    for _, line in ipairs(vim.split(stream or '', '\n')) do
-      if line ~= '' then
-        merged[#merged + 1] = line
-      end
-    end
-  end
-
-  return merged, completed.code == 0
-end
-
 ---Returns the name of the currently checked out branch, or nil in a detached
 ---HEAD or outside a repository.
 ---@return string|nil
 function M._current_branch()
-  local output, git_ok = M._git({ 'rev-parse', '--abbrev-ref', 'HEAD' })
+  -- `symbolic-ref` rather than `rev-parse --abbrev-ref HEAD`, which exits 128
+  -- before the first commit and so reported no branch in a freshly initialised
+  -- repository. Same correction already made in `util.current_branch`.
+  local output, git_ok = util.git({ 'symbolic-ref', '--short', '--quiet', 'HEAD' })
 
-  if not git_ok or not output[1] or output[1] == '' or output[1] == 'HEAD' then
+  if not git_ok or not output[1] or output[1] == '' then
     return nil
   end
 
@@ -106,7 +69,7 @@ end
 ---@param branch string
 ---@return boolean
 function M._exists_on_remote(remote, branch)
-  local _, git_ok = M._git({ 'rev-parse', '--verify', '--quiet', 'refs/remotes/' .. remote .. '/' .. branch })
+  local _, git_ok = util.git({ 'rev-parse', '--verify', '--quiet', 'refs/remotes/' .. remote .. '/' .. branch })
 
   return git_ok
 end
@@ -200,7 +163,7 @@ function M.Delete(optional_parameters)
   -- separator: `G branch -d topic|qall` deletes `topic` and then quits Neovim.
   -- An argument vector is never parsed as Ex or by a shell, and it also
   -- returns an exit status, which the remote deletion below depends on.
-  local delete_output, delete_ok = M._git({ 'branch', choice == 2 and '-D' or '-d', '--', plan.branch })
+  local delete_output, delete_ok = util.git({ 'branch', choice == 2 and '-D' or '-d', '--', plan.branch })
 
   if not delete_ok then
     return agitate_error.throw('core.branch.Delete -- Error: could not delete `' .. plan.branch .. '` locally.\n' .. table.concat(delete_output, '\n'))
@@ -215,7 +178,7 @@ function M.Delete(optional_parameters)
   -- Only reached once the local deletion actually succeeded. `-d` refuses an
   -- unmerged branch, and deleting the remote copy after that refusal would
   -- destroy the only remaining reference to that work.
-  local push_output, push_ok = M._git({ 'push', remote, '--delete', '--', plan.branch })
+  local push_output, push_ok = util.git({ 'push', remote, '--delete', '--', plan.branch })
 
   if not push_ok then
     return agitate_error.throw(

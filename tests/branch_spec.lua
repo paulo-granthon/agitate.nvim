@@ -171,10 +171,10 @@ describe('core.branch', function()
 
     it('reports success and failure through its second return value', function()
       in_repository(function()
-        local _, ok = branch._git({ 'rev-parse', 'HEAD' })
+        local _, ok = require('agitate.util').git({ 'rev-parse', 'HEAD' })
         assert.is_true(ok)
 
-        local output, failed = branch._git({ 'branch', '-d', 'no-such-branch' })
+        local output, failed = require('agitate.util').git({ 'branch', '-d', 'no-such-branch' })
         assert.is_false(failed)
         assert.is_true(#output > 0)
         -- git writes this to stderr, which `systemlist` did not capture, so the
@@ -188,13 +188,13 @@ describe('core.branch', function()
     -- command, so a branch named `topic|qall` quit Neovim on delete.
     it('handles a ref containing a pipe as one argument', function()
       in_repository(function()
-        local _, created = branch._git({ 'branch', 'topic|qall' })
+        local _, created = require('agitate.util').git({ 'branch', 'topic|qall' })
         assert.is_true(created)
 
-        local _, deleted = branch._git({ 'branch', '-D', 'topic|qall' })
+        local _, deleted = require('agitate.util').git({ 'branch', '-D', 'topic|qall' })
         assert.is_true(deleted)
 
-        local _, gone = branch._git({ 'rev-parse', '--verify', '--quiet', 'refs/heads/topic|qall' })
+        local _, gone = require('agitate.util').git({ 'rev-parse', '--verify', '--quiet', 'refs/heads/topic|qall' })
         assert.is_false(gone)
       end)
     end)
@@ -203,10 +203,10 @@ describe('core.branch', function()
     -- refusing here the gate would silently open.
     it('refuses to delete an unmerged branch without force', function()
       in_repository(function()
-        branch._git({ 'checkout', '-b', 'unmerged' })
+        require('agitate.util').git({ 'checkout', '-b', 'unmerged' })
         vim.fn.writefile({ 'work' }, 'work.txt')
-        branch._git({ 'add', 'work.txt' })
-        branch._git({
+        require('agitate.util').git({ 'add', 'work.txt' })
+        require('agitate.util').git({
           '-c',
           'user.name=agitate tests',
           '-c',
@@ -216,12 +216,12 @@ describe('core.branch', function()
           'work',
           '--no-gpg-sign',
         })
-        branch._git({ 'checkout', 'main' })
+        require('agitate.util').git({ 'checkout', 'main' })
 
-        local _, safe = branch._git({ 'branch', '-d', 'unmerged' })
+        local _, safe = require('agitate.util').git({ 'branch', '-d', 'unmerged' })
         assert.is_false(safe)
 
-        local _, forced = branch._git({ 'branch', '-D', 'unmerged' })
+        local _, forced = require('agitate.util').git({ 'branch', '-D', 'unmerged' })
         assert.is_true(forced)
       end)
     end)
