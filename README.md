@@ -42,6 +42,16 @@ You can easily verify what the commands are and what they do by looking at the
   one, checkout to it and push it to the remote repository.  
   Requires the branch name as an argument.
 
+- `:AgitateBranchDelete` - Delete a named branch locally and, when it has one,
+  its remote counterpart.  
+  Takes `-b` for the branch and `-r` for the remote, in that order if you pass
+  them positionally. The branch is required, so calling the command with no
+  arguments is an error rather than a shorthand; the remote defaults to
+  `origin`.  
+  Asks for confirmation first, and offers a force delete for a branch that
+  still holds unmerged commits. It will not delete the branch you are on:
+  check out another one first, then name it.
+
 ## Usage
 
 You can use the commands directly from the command line, but it is recommended
@@ -120,7 +130,7 @@ Features planned for implementation
 - [ ] Branch functions:
 
   - [x] Create a new branch from the current one, checkout to it and push it to remote.
-  - [ ] Delete a branch both locally and from the remote repository.
+  - [x] Delete a branch both locally and from the remote repository.
 
 - [ ] Repository functions:
 
