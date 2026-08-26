@@ -63,7 +63,14 @@ function M.Create(optional_parameters)
 
   local path = 'user'
 
-  local is_org, _ = github.get_organization(github_access_token, github_username)
+  -- Only a 404 means "this name is a user". Bad credentials, a rate limit or
+  -- a decode failure also return false, and treating those as a user posts the
+  -- repository to `user/repos` on a guess.
+  local is_org, org_result = github.get_organization(github_access_token, github_username)
+
+  if not is_org and org_result and org_result.message and org_result.message ~= 'Not Found' then
+    return agitate_error.throw(org_result)
+  end
 
   if is_org then
     vim.notify(
