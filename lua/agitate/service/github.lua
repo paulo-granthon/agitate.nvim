@@ -181,8 +181,10 @@ end
 ---back, which is how the API signals the end.
 ---
 ---Bounded at `MAX_PAGES`. A repository large enough to hit that is possible,
----and stopping silently would read as "this is everything", so the caller is
----told when the list was cut short.
+---and stopping silently would read as "this is everything", so hitting the
+---bound notifies the user. It is not signalled to the caller: the result is
+---still `ok` with a partial list, because every caller wants to display what
+---it has rather than fail.
 ---@param access_token string|nil
 ---@param path string An API path, with or without an existing query string
 ---@param action string

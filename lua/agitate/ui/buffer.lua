@@ -57,7 +57,12 @@ end
 ---empty buffer submits nothing, so there are two ways to change your mind and
 ---neither of them needs a special key.
 ---
----@param opts table `{ name = string, help = string[]|nil, initial = string[]|nil }`
+---`opts.raw` submits the buffer verbatim as the body, with an empty title.
+---A comment has no title, so putting one through the title split trimmed its
+---first line and collapsed the blank line after it, which the help text then
+---described inaccurately.
+---
+---@param opts table `{ name = string, help = string[]|nil, initial = string[]|nil, raw = boolean|nil }`
 ---@param callback fun(title: string, body: string) Called once, on submit
 function M.open(opts, callback)
   local buffer = vim.api.nvim_create_buf(false, true)
@@ -91,7 +96,16 @@ function M.open(opts, callback)
   vim.api.nvim_create_autocmd('BufWriteCmd', {
     buffer = buffer,
     callback = function()
-      local title, body = M.parse(vim.api.nvim_buf_get_lines(buffer, 0, -1, false))
+      local lines = vim.api.nvim_buf_get_lines(buffer, 0, -1, false)
+      local title, body
+
+      if opts.raw then
+        local text = table.concat(lines, '\n')
+
+        title, body = text:match('%S') and '' or nil, text
+      else
+        title, body = M.parse(lines)
+      end
 
       vim.api.nvim_set_option_value('modified', false, { buf = buffer })
 
