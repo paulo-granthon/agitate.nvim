@@ -57,9 +57,10 @@ end
 
 ---Extracts the owner and repository name from a GitHub remote URL.
 ---
----Handles the two forms `git remote get-url` returns: the https URL and the
----scp style ssh remote. The trailing `.git` is optional in both, because it is
----optional in what git accepts.
+---Recognises the https URL and the scp style ssh remote. `git remote get-url`
+---can return other shapes too, so an unrecognised one resolves to nil rather
+---than a guess. The trailing `.git` is optional, because it is optional in
+---what git accepts.
 ---@param url string|nil A git remote URL
 ---@return string|nil owner
 ---@return string|nil repository
