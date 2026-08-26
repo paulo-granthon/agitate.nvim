@@ -152,6 +152,20 @@ describe('service.github', function()
       assert.is_truthy(result.message:find('Bad credentials', 1, true))
     end)
 
+    -- A proxy or outage page can answer 200 with HTML. Reading that as an
+    -- organization would create the repository under `orgs/<name>`.
+    it('refuses a 200 that carries no JSON', function()
+      respond_with(true, { status = 200, body = nil, raw = '<html>proxy</html>' })
+
+      local lookup_ok, result
+      github.is_organization('token', 'acme', function(value_ok, value)
+        lookup_ok, result = value_ok, value
+      end)
+
+      assert.is_false(lookup_ok)
+      assert.is_truthy(result.message:find('expected JSON', 1, true))
+    end)
+
     it('passes a transport failure straight through', function()
       respond_with(false, { message = 'curl exited with code 6' })
 
