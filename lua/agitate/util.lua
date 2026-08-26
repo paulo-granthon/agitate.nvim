@@ -156,6 +156,13 @@ end
 ---@return string[] output
 ---@return boolean ok
 function M.git(argv, directory)
+  -- `vim.system` arrived in 0.10. Every other Neovim requirement in the plugin
+  -- is stated up front, so this one reports itself rather than surfacing as
+  -- "attempt to call field 'system' (a nil value)" from inside a git call.
+  if type(vim.system) ~= 'function' then
+    return { 'agitate requires Neovim 0.10 or newer for git operations' }, false
+  end
+
   local command = { 'git', '-C', directory or M.buffer_directory() }
   vim.list_extend(command, argv)
 
