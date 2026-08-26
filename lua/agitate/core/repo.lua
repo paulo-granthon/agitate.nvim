@@ -25,7 +25,7 @@ local github = github_or_err
 local parse_args = require('agitate.parse_args')
 
 ---Create a new repository on GitHub
----@param optional_parameters? table<string> Parameters can be passed in order or explicitly
+---@param optional_parameters? string[] Parameters can be passed in order or explicitly
 ---with their corresponding flags:
 ---  -r: The name of the repository to create.
 ---  -u: The GitHub username or organization to create the repository under.
@@ -111,6 +111,18 @@ function M.Create(optional_parameters)
     )
   end
 
+  -- Checked before the html_url branch: an error body without an `errors`
+  -- array, such as `{"message":"Bad credentials"}`, otherwise fell through and
+  -- was reported as a missing `html_url`, hiding what GitHub actually said.
+  if github_post_response.message and not github_post_response.html_url then
+    return agitate_error.throw(
+      'core.repo.Create -- Error: failed to create repository at '
+        .. util.build_github_html_url(github_username, repository_name)
+        .. '\nReason: '
+        .. github_post_response.message
+    )
+  end
+
   if not github_post_response.html_url then
     return agitate_error.throw(
       'core.repo.Create -- Error: repository creation at '
@@ -132,7 +144,7 @@ function M.Create(optional_parameters)
 end
 
 ---Initialize the current directory as a repository and push it to GitHub
----@param optional_parameters? table<string> Parameters can be passed in order or explicitly
+---@param optional_parameters? string[] Parameters can be passed in order or explicitly
 ---with their corresponding flags:
 ---  -r: The name of the repository. Defaults to the current directory name.
 ---  -u: The GitHub username or organization. Defaults to the configured username.
