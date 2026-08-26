@@ -75,6 +75,21 @@ function M.parse_github_remote(url)
     owner, repository = url:match('^git@github%.com:([^/]+)/([^/]+)$')
   end
 
+  -- `git remote get-url` also returns the full ssh URL form, optionally with a
+  -- port. Without it an `ssh://` origin resolved to nil and every command that
+  -- defaults from the remote asked for `-u` and `-r` instead.
+  if not owner then
+    -- Two exact alternatives rather than one loose pattern. `:?%d*` made the
+    -- colon optional as well as the digits, so `github.com443/owner/repo` was
+    -- accepted as GitHub. Lua patterns have no optional group, so the port
+    -- form is spelled out separately.
+    owner, repository = url:match('^ssh://git@github%.com/([^/]+)/([^/]+)$')
+
+    if not owner then
+      owner, repository = url:match('^ssh://git@github%.com:%d+/([^/]+)/([^/]+)$')
+    end
+  end
+
   if not owner then
     return nil, nil
   end
@@ -163,6 +178,30 @@ function M.git(argv, directory)
   end
 
   return lines, completed.code == 0
+end
+
+---Opens a URL in the user's browser.
+---@param url string|nil
+---@return boolean ok
+---@return string|nil reason
+function M.open_url(url)
+  -- Validated because the usual caller passes a field straight off a GitHub
+  -- payload, so a response without `html_url` would reach `vim.ui.open` as nil
+  -- and raise from inside the UI layer instead of saying what was missing.
+  if type(url) ~= 'string' or not url:match('%S') then
+    return false, 'no URL to open'
+  end
+
+  -- `vim.ui.open` raises when it cannot find an opener, which depends on the
+  -- platform and the user's configuration, so the caller gets a reason rather
+  -- than a traceback from inside the UI layer.
+  local opened, err = pcall(vim.ui.open, url)
+
+  if not opened then
+    return false, tostring(err)
+  end
+
+  return true
 end
 
 return M

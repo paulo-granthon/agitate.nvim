@@ -21,6 +21,12 @@ end
 
 local http = http_or_err
 
+---GitHub's hard ceiling for a page of results.
+local PER_PAGE = 100
+
+---How many pages a list command will walk before reporting a truncated list.
+local MAX_PAGES = 10
+
 ---Builds a readable message from a GitHub error response.
 ---
 ---GitHub reports a failure in two layers: a top level `message` describing
@@ -173,6 +179,102 @@ function M.create_repository(access_token, options, callback)
       callback(true, result)
     end
   )
+end
+
+---Fetches every page of a list endpoint.
+---
+---GitHub caps a page at 100 regardless of what is asked for, so a single
+---request silently truncates any longer list. Pages until a short page comes
+---back, which is how the API signals the end.
+---
+---Bounded at `MAX_PAGES`. A repository large enough to hit that is possible,
+---and stopping silently would read as "this is everything", so hitting the
+---bound notifies the user. It is not signalled to the caller: the result is
+---still `ok` with a partial list, because every caller wants to display what
+---it has rather than fail.
+---@param access_token string|nil
+---@param path string An API path, with or without an existing query string
+---@param action string
+---@param callback fun(ok: boolean, result: table[]|AgitateError)
+function M.get_all(access_token, path, action, callback)
+  local collected = {}
+  local separator = path:find('?', 1, true) and '&' or '?'
+
+  local function fetch(page)
+    M.get(access_token, path .. separator .. 'per_page=' .. PER_PAGE .. '&page=' .. page, action, function(page_ok, result)
+      if not page_ok then
+        return callback(false, result)
+      end
+
+      -- An object such as `{ "message": ... }` is a table with no array part,
+      -- so it read as a short page and came back as `ok` with an empty list.
+      -- An empty JSON array is also an empty table, hence the `next` check
+      -- rather than a length one.
+      if type(result) ~= 'table' or (next(result) ~= nil and result[1] == nil) then
+        return callback(false, {
+          message = 'service.github -- Error: expected a list from `' .. path .. '`, got ' .. vim.inspect(result, { newline = ' ', indent = '' }):sub(1, 200),
+        })
+      end
+
+      for _, item in ipairs(result) do
+        collected[#collected + 1] = item
+      end
+
+      if #result < PER_PAGE then
+        return callback(true, collected)
+      end
+
+      if page >= MAX_PAGES then
+        vim.notify('Agitate: showing the first ' .. #collected .. ' results only, there are more.', vim.log.levels.WARN)
+
+        return callback(true, collected)
+      end
+
+      fetch(page + 1)
+    end)
+  end
+
+  fetch(1)
+end
+
+---Fetches the comments on an issue or pull request.
+---
+---GitHub models a pull request as an issue for conversation comments, so this
+---one function serves both and neither feature needs its own.
+---@param access_token string
+---@param owner string
+---@param repository string
+---@param number number The issue or pull request number
+---@param callback fun(ok: boolean, result: table[]|AgitateError)
+function M.list_comments(access_token, owner, repository, number, callback)
+  M.get_all(access_token, 'repos/' .. owner .. '/' .. repository .. '/issues/' .. number .. '/comments', 'read the comments on #' .. number, callback)
+end
+
+---Fetches a repository, which is how the default branch is discovered.
+---@param access_token string
+---@param owner string
+---@param repository string
+---@param callback fun(ok: boolean, result: table|AgitateError)
+function M.get_repository(access_token, owner, repository, callback)
+  M.get(access_token, 'repos/' .. owner .. '/' .. repository, 'read `' .. owner .. '/' .. repository .. '`', callback)
+end
+
+---Adds a comment to an issue or a pull request.
+---
+---GitHub models a pull request as an issue for commenting, so both go through
+---this one endpoint and neither needs its own.
+---@param access_token string
+---@param owner string
+---@param repository string
+---@param number number The issue or pull request number
+---@param body string The comment text
+---@param callback fun(ok: boolean, result: table|AgitateError)
+function M.create_comment(access_token, owner, repository, number, body, callback)
+  M.call(access_token, {
+    path = 'repos/' .. owner .. '/' .. repository .. '/issues/' .. number .. '/comments',
+    method = 'POST',
+    body = { body = body },
+  }, 'comment on `' .. owner .. '/' .. repository .. '#' .. number .. '`', 201, callback)
 end
 
 return M
