@@ -195,13 +195,16 @@ end
 function M.comment(resolved, number)
   editor.open({
     name = 'agitate://issue/' .. number .. '/comment',
+    -- `raw` because a comment has no title. Without it the buffer went through
+    -- the title split, which trimmed the first line and collapsed the blank
+    -- line after it, contradicting the help text below.
+    raw = true,
     help = {
       'Write your comment. The first line is not treated specially here.',
       'Write the buffer to submit, close it without writing to abandon.',
     },
-  }, function(title, body)
-    -- A comment has no title, so the first line is simply its first line.
-    local text = body ~= '' and (title .. '\n' .. body) or title
+  }, function(_, body)
+    local text = body
 
     github.create_comment(resolved.token, resolved.owner, resolved.repository, number, text, function(commented_ok, comment)
       if not commented_ok then
