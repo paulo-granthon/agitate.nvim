@@ -67,12 +67,15 @@ function M.Create(optional_parameters)
 
   if is_org then
     vim.notify(
-      (is_private and 'Private r' or 'R') .. 'epository ' .. repository_name .. ' will be created under organization ' .. github_username,
+      (is_private and 'Private repository ' or 'Repository ') .. repository_name .. ' will be created under organization ' .. github_username,
       vim.log.levels.INFO
     )
     path = 'orgs/' .. github_username
   else
-    vim.notify((is_private and 'Private r' or 'R') .. 'epository ' .. repository_name .. ' will be created under user ' .. github_username, vim.log.levels.INFO)
+    vim.notify(
+      (is_private and 'Private repository ' or 'Repository ') .. repository_name .. ' will be created under user ' .. github_username,
+      vim.log.levels.INFO
+    )
   end
 
   local github_post_ok, github_post_response = github.post_new_repo(github_access_token, repository_name, is_private, path)
