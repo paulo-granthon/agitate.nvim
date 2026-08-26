@@ -195,7 +195,7 @@ function M.Create(optional_parameters)
         help = {
           head .. ' into ' .. base,
           'First line is the title, the rest is the body.',
-          'Write the buffer to submit, close it without writing to abandon.',
+          'Write the buffer to submit, `:q!` to abandon.',
         },
       }, function(title, body)
         github.create_pull_request(resolved.token, resolved.owner, resolved.repository, {
@@ -315,7 +315,7 @@ function M._comment(resolved, number)
     raw = true,
     help = {
       'Write your comment. The first line is not treated specially here.',
-      'Write the buffer to submit, close it without writing to abandon.',
+      'Write the buffer to submit, `:q!` to abandon.',
     },
   }, function(_, body)
     local text = body
