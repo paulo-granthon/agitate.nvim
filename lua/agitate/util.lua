@@ -102,9 +102,11 @@ end
 ---@return string|nil owner
 ---@return string|nil repository
 function M.origin_repository()
-  local output = vim.fn.systemlist({ 'git', 'remote', 'get-url', 'origin' })
+  -- Through `M.git`, so it reads the buffer's repository rather than whatever
+  -- the process working directory happens to be.
+  local output, ok = M.git({ 'remote', 'get-url', 'origin' })
 
-  if vim.v.shell_error ~= 0 then
+  if not ok then
     return nil, nil
   end
 
@@ -123,6 +125,51 @@ function M.encode_path_segment(segment)
   return (segment:gsub('[^%w%-%_%.%~]', function(character)
     return string.format('%%%02X', string.byte(character))
   end))
+end
+
+---Returns the directory git commands should run in.
+---
+---The current buffer's directory, not the process working directory. Fugitive
+---resolved the repository from the buffer, so every direct git call has to do
+---the same or `:cd` silently changes which repository Agitate acts on. Falls
+---back to the working directory for a buffer with no file, which is what the
+---scratch buffers are.
+---@return string
+function M.buffer_directory()
+  local buffer_path = vim.api.nvim_buf_get_name(0)
+
+  if buffer_path == '' then
+    return vim.fn.getcwd()
+  end
+
+  local directory = vim.fn.fnamemodify(buffer_path, ':p:h')
+
+  return vim.fn.isdirectory(directory) == 1 and directory or vim.fn.getcwd()
+end
+
+---Runs a git command in the current buffer's repository.
+---
+---Merges stdout and stderr, because git reports almost every failure on
+---stderr and a caller that only sees stdout reports a failure with no reason.
+---@param argv string[] The git command, without the leading `git`
+---@return string[] output
+---@return boolean ok
+function M.git(argv)
+  local command = { 'git', '-C', M.buffer_directory() }
+  vim.list_extend(command, argv)
+
+  local completed = vim.system(command, { text = true }):wait()
+
+  local lines = {}
+  for _, stream in ipairs({ completed.stdout, completed.stderr }) do
+    for _, line in ipairs(vim.split(stream or '', '\n')) do
+      if line ~= '' then
+        lines[#lines + 1] = line
+      end
+    end
+  end
+
+  return lines, completed.code == 0
 end
 
 ---Opens a URL in the user's browser.
