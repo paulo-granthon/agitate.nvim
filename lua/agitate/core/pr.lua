@@ -131,12 +131,13 @@ function M._plan_merge(pull)
     return { allowed = false, reason = blocked }
   end
 
-  -- `mergeable` is nil while GitHub is still computing it. Merging on an
-  -- unknown is how a surprise conflict gets forced through.
   if pull.mergeable == false then
     return { allowed = false, reason = 'GitHub reports it as not mergeable' }
   end
 
+  -- `mergeable` is nil while GitHub is still computing it, which it does
+  -- asynchronously. Treating an unknown as permission is how a surprise
+  -- conflict gets forced through, so it is a refusal rather than a default.
   if pull.mergeable == nil then
     return { allowed = false, reason = 'GitHub has not finished checking whether it can be merged, try again shortly' }
   end
