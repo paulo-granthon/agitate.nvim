@@ -123,7 +123,7 @@ local function choose(given, items, prompt, callback)
 end
 
 ---Add a `.gitignore` from a GitHub template
----@param optional_parameters? table<string> `-t` selects the template by name.
+---@param optional_parameters? string[] `-t` selects the template by name.
 ---Without it, the available templates are offered for selection.
 function M.Gitignore(optional_parameters)
   local options = require('agitate.config').options
@@ -170,7 +170,7 @@ function M.Gitignore(optional_parameters)
 end
 
 ---Add a `LICENSE` from a GitHub template
----@param optional_parameters? table<string> Parameters can be passed in order or explicitly
+---@param optional_parameters? string[] Parameters can be passed in order or explicitly
 ---with their corresponding flags:
 ---  -l: The license key, such as `mit`. Without it, the licenses are offered for selection.
 ---  -a: The copyright holder. Defaults to `file.license.author`, then the configured username.
@@ -252,7 +252,7 @@ function M.License(optional_parameters)
 end
 
 ---Add a `.github/FUNDING.yml` pointing at a GitHub sponsors profile
----@param optional_parameters? table<string> `-u` sets the username. Defaults to the configured one.
+---@param optional_parameters? string[] `-u` sets the username. Defaults to the configured one.
 function M.Funding(optional_parameters)
   local options = require('agitate.config').options
   local parameters, leftover, incomplete = parse_args({ '-u' }, optional_parameters)
