@@ -62,9 +62,10 @@ function M.post_new_repo(access_token, repository, is_private, path)
   -- Trim any noise left of the first `{` or right of the last `}`
   local json_lr_trim_ok, repo_json = util.json_lr_trim(flattened_github_response)
   if not json_lr_trim_ok then
-    vim.notify('post_new_repo -- Error: Empty json response after trim: `' .. flattened_github_response .. '`', vim.log.levels.ERROR)
-
-    return json_lr_trim_ok, agitate_error.unhandled('service.github.post_new_repo')
+    return json_lr_trim_ok,
+      {
+        message = 'service.github.post_new_repo -- Error: no JSON found in the response.\nResponse: ' .. flattened_github_response,
+      }
   end
 
   -- `vim.json.decode` raises on malformed input, and curl can emit a
@@ -84,9 +85,9 @@ function M.post_new_repo(access_token, repository, is_private, path)
 
   -- check if empty
   if json_decoded == nil or json_decoded == '' then
-    vim.notify('post_new_repo -- Error: Empty json response after decode: `' .. flattened_github_response .. '`', vim.log.levels.ERROR)
-
-    return false, agitate_error.unhandled('service.github.post_new_repo')
+    return false, {
+      message = 'service.github.post_new_repo -- Error: empty JSON in the response.\nResponse: ' .. flattened_github_response,
+    }
   else
     -- Return the processed response as a lua table
     return true, json_decoded
