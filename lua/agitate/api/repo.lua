@@ -40,7 +40,10 @@ function M.setup()
 
     repo_or_err.Visibility(opts.fargs)
   end, {
-    nargs = '*',
+    -- `+` rather than `*`: the visibility is required and has no sensible
+    -- default, so an empty invocation is rejected at the command line instead
+    -- of reaching the core to fail there.
+    nargs = '+',
     desc = 'Change the visibility of a repository between public and private',
   })
 end
