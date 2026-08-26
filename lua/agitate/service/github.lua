@@ -119,7 +119,17 @@ function M.is_organization(access_token, name, callback)
       return callback(false, response)
     end
 
+    -- A 200 alone is not enough. The transport reports `body = nil` when the
+    -- response was not JSON, which a proxy or an outage page can produce, and
+    -- treating that as an organization would create the repository under
+    -- `orgs/<name>` on the strength of an HTML error page.
     if response.status == 200 then
+      if not response.body then
+        return callback(false, {
+          message = 'service.github.is_organization -- Error: expected JSON from the organization lookup.\nRaw response: ' .. response.raw,
+        })
+      end
+
       return callback(true, true)
     end
 
@@ -171,8 +181,10 @@ end
 ---back, which is how the API signals the end.
 ---
 ---Bounded at `MAX_PAGES`. A repository large enough to hit that is possible,
----and stopping silently would read as "this is everything", so the caller is
----told when the list was cut short.
+---and stopping silently would read as "this is everything", so hitting the
+---bound notifies the user. It is not signalled to the caller: the result is
+---still `ok` with a partial list, because every caller wants to display what
+---it has rather than fail.
 ---@param access_token string|nil
 ---@param path string An API path, with or without an existing query string
 ---@param action string

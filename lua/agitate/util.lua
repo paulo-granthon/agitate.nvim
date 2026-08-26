@@ -78,7 +78,10 @@ function M.parse_github_remote(url)
   -- port. Without it an `ssh://` origin resolved to nil and every command that
   -- defaults from the remote asked for `-u` and `-r` instead.
   if not owner then
-    owner, repository = url:match('^ssh://git@github%.com[^/]*/([^/]+)/([^/]+)$')
+    -- `[^/]*` after the host also matched `github.com.evil.com/owner/repo`,
+    -- so a lookalike remote resolved as GitHub. Only an optional numeric port
+    -- may follow the host.
+    owner, repository = url:match('^ssh://git@github%.com:?%d*/([^/]+)/([^/]+)$')
   end
 
   if not owner then
