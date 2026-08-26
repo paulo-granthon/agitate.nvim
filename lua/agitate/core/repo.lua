@@ -134,7 +134,12 @@ function M.Init(optional_parameters)
     return agitate_error.throw('core.repo.Init -- Error: undefined GitHub username or repository name')
   end
 
-  util.execute_command('echo "# ' .. github_repository_name .. '" >> README.md')
+  -- Written directly rather than through `execute_command`, which passes a
+  -- string to `vim.fn.systemlist` and therefore to a shell. The repository
+  -- name would otherwise reach a shell command line with a `>>` redirection.
+  if vim.fn.writefile({ '# ' .. github_repository_name }, 'README.md', 'a') ~= 0 then
+    return agitate_error.throw('core.repo.Init -- Error: could not write README.md')
+  end
   vim.cmd('G init')
   vim.cmd('G add README.md')
   vim.cmd('G commit -m "' .. options.repo.init.first_commit_message .. '"')
