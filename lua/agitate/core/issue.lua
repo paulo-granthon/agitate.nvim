@@ -134,7 +134,7 @@ function M.Create(optional_parameters)
       name = 'agitate://issue/new',
       help = {
         'First line is the title, the rest is the body.',
-        'Write the buffer to submit, close it without writing to abandon.',
+        'Write the buffer to submit, `:q!` to abandon.',
       },
     }, function(title, body)
       github.create_issue(resolved.token, resolved.owner, resolved.repository, { title = title, body = body }, function(created_ok, issue)
@@ -217,7 +217,7 @@ function M._comment(resolved, number)
     raw = true,
     help = {
       'Write your comment. The first line is not treated specially here.',
-      'Write the buffer to submit, close it without writing to abandon.',
+      'Write the buffer to submit, `:q!` to abandon.',
     },
   }, function(_, body)
     local text = body
