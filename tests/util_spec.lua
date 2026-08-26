@@ -89,6 +89,8 @@ describe('util', function()
     -- way; resolving it as GitHub would send a token to it.
     it('rejects a lookalike host that only starts with github.com', function()
       assert.is_nil(util.parse_github_remote('ssh://git@github.com.evil.com/octocat/hello.git'))
+      -- digits with no colon are not a port
+      assert.is_nil(util.parse_github_remote('ssh://git@github.com443/octocat/hello.git'))
       assert.is_nil(util.parse_github_remote('https://github.com.evil.com/octocat/hello.git'))
     end)
 
