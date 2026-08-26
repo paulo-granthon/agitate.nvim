@@ -136,7 +136,10 @@ function M.Init(optional_parameters)
   local github_repository_name = parameters['-r'] or util.get_directory_name()
   local github_username = parameters['-u'] or options.github_username
 
-  if not github_username or not github_repository_name then
+  -- An empty string passes a nil check but produces an invalid URL and an
+  -- invalid git command, so `-r ""` has to be rejected here rather than
+  -- surfacing later as a confusing failure.
+  if not github_username or github_username == '' or not github_repository_name or github_repository_name == '' then
     return agitate_error.throw('core.repo.Init -- Error: undefined GitHub username or repository name')
   end
 
@@ -149,7 +152,10 @@ function M.Init(optional_parameters)
     return agitate_error.throw('core.repo.Init -- Error: `repo.init.remote_protocol` expects `https` or `ssh`, got `' .. tostring(protocol) .. '`')
   end
 
-  util.execute_command('echo "# ' .. github_repository_name .. '" >> README.md')
+  -- Written directly rather than shelled out to `echo ... >> README.md`. That
+  -- ran through a shell with the repository name interpolated unescaped, so a
+  -- name containing a quote or a metacharacter could run something else.
+  vim.fn.writefile({ '# ' .. github_repository_name }, 'README.md', 'a')
   vim.cmd('G init')
   vim.cmd('G add README.md')
   vim.cmd('G commit -m "' .. options.repo.init.first_commit_message .. '"')
