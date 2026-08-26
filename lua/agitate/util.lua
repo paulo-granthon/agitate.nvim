@@ -55,6 +55,63 @@ function M.build_github_html_url(username, repository_name)
   return 'https://github.com/' .. username .. '/' .. repository_name
 end
 
+---Extracts the owner and repository name from a GitHub remote URL.
+---
+---Recognises the https URL and the scp style ssh remote. `git remote get-url`
+---can return other shapes too, so an unrecognised one resolves to nil rather
+---than a guess. The trailing `.git` is optional, because it is optional in
+---what git accepts.
+---@param url string|nil A git remote URL
+---@return string|nil owner
+---@return string|nil repository
+function M.parse_github_remote(url)
+  if type(url) ~= 'string' then
+    return nil, nil
+  end
+
+  local owner, repository = url:match('^https://github%.com/([^/]+)/([^/]+)$')
+
+  if not owner then
+    owner, repository = url:match('^git@github%.com:([^/]+)/([^/]+)$')
+  end
+
+  if not owner then
+    return nil, nil
+  end
+
+  return owner, (repository:gsub('%.git$', ''))
+end
+
+---Reads the owner and repository from the `origin` remote of the current
+---repository, so commands can default to the checkout the user is sitting in.
+---@return string|nil owner
+---@return string|nil repository
+function M.origin_repository()
+  -- Through `M.git`, so it reads the buffer's repository rather than whatever
+  -- the process working directory happens to be.
+  local output, ok = M.git({ 'remote', 'get-url', 'origin' })
+
+  if not ok then
+    return nil, nil
+  end
+
+  return M.parse_github_remote(output[1])
+end
+
+---Percent encodes a string for use as a single URL path segment.
+---
+---Leaves the unreserved set alone and encodes everything else. GitHub has
+---template names such as `C++`, and a name containing `#` or a space would
+---otherwise change which endpoint the request reaches rather than failing
+---visibly.
+---@param segment string
+---@return string
+function M.encode_path_segment(segment)
+  return (segment:gsub('[^%w%-%_%.%~]', function(character)
+    return string.format('%%%02X', string.byte(character))
+  end))
+end
+
 ---Returns the directory git commands should run in.
 ---
 ---The current buffer's directory, not the process working directory. Fugitive

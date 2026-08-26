@@ -7,10 +7,10 @@ if not ok then
   error(message, 0)
 end
 
-local util_ok, util_or_err = pcall(require, 'agitate.util')
-if not util_ok then
-  agitate_error.throw(util_or_err)
-  error(util_or_err, 0)
+local http_ok, http_or_err = pcall(require, 'agitate.service.http')
+if not http_ok then
+  agitate_error.throw(http_or_err)
+  error(http_or_err, 0)
 end
 
 local types_ok, types_or_err = pcall(require, 'agitate.types.github')
@@ -19,150 +19,160 @@ if not types_ok then
   error(types_or_err, 0)
 end
 
-local util = util_or_err
+local http = http_or_err
 
----Creates a new remote repository on GitHub
----@param access_token string Your GitHub PAT (Personal Access Token)
----@param repository string Name of the repository to be created
----@param is_private boolean Whether the repository should be private or public
----@return boolean Ok If proccess was executed successfully
----@return GitHubNewRepoSuccessResponse|GitHubErrorResponse|AgitateError Response
----Response properly formatted for the rest of `agitated.nvim`.
----Might contain the repo information relavant to the rest of Agitate or an error message
----@see GitHubNewRepoSuccessResponse
----@see GitHubErrorResponse
----@see AgitateError
-function M.post_new_repo(access_token, repository, is_private, path)
-  -- Execute curl to create the repository through the GitHub api
-  -- An argument vector rather than one string. `vim.fn.systemlist` runs a
-  -- string through a shell, so the token, repository name and path were all
-  -- interpolated unescaped into a shell command. A list bypasses the shell
-  -- entirely, and `vim.json.encode` removes the hand built JSON quoting that
-  -- produced a malformed body once already.
-  local raw_github_response = util.execute_command({
-    'curl',
-    '--silent',
-    '--show-error',
-    -- An argv list bypasses the shell, so curl's stderr is otherwise dropped
-    -- and a failed request produced an empty body with no explanation.
-    '--stderr',
-    '-',
-    '-H',
-    'Authorization: token ' .. access_token,
-    '-H',
-    'Accept: application/vnd.github+json',
-    'https://api.github.com/' .. path .. '/repos',
-    '-d',
-    vim.json.encode({ name = repository, private = is_private }),
-  })
+---Builds a readable message from a GitHub error response.
+---
+---GitHub reports a failure in two layers: a top level `message` describing
+---what went wrong, and an optional `errors` array explaining which field
+---caused it. The second layer carries the part a user can act on, such as
+---`name already exists on this account`, so both are surfaced.
+---@param action string What was being attempted, phrased to follow "could not"
+---@param response HttpResponse The response that failed
+---@return string
+function M.describe_failure(action, response)
+  -- A JSON body is usually an object, but a proxy or a malformed endpoint can
+  -- return a bare number or string, and indexing one of those throws while
+  -- trying to format the very error being reported.
+  local body = type(response.body) == 'table' and response.body or {}
+  local reasons = {}
 
-  -- Flatten the table response to string
-  local flattened_github_response = util.flatten_table(raw_github_response)
-
-  -- Trim any noise left of the first `{` or right of the last `}`
-  local json_lr_trim_ok, repo_json = util.json_lr_trim(flattened_github_response)
-  if not json_lr_trim_ok then
-    return json_lr_trim_ok,
-      {
-        message = 'service.github.post_new_repo -- Error: no JSON found in the response.\nResponse: ' .. flattened_github_response,
-      }
+  if body.message then
+    reasons[#reasons + 1] = body.message
   end
 
-  -- `vim.json.decode` raises on malformed input, and curl can emit a
-  -- partial body or a proxy error page. Raising here would crash the
-  -- command instead of returning the documented (ok, response) pair.
-  local decode_ok, json_decoded = pcall(vim.json.decode, repo_json)
-
-  if not decode_ok then
-    return false,
-      {
-        message = 'service.github.post_new_repo -- Error: could not decode the response.\n'
-          .. tostring(json_decoded)
-          .. '\nResponse: '
-          .. flattened_github_response,
-      }
+  for _, err in ipairs(body.errors or {}) do
+    reasons[#reasons + 1] = err.message or vim.inspect(err)
   end
 
-  -- check if empty
-  if json_decoded == nil or json_decoded == '' then
-    return false, {
-      message = 'service.github.post_new_repo -- Error: empty JSON in the response.\nResponse: ' .. flattened_github_response,
-    }
-  else
-    -- Return the processed response as a lua table
-    return true, json_decoded
+  if #reasons == 0 then
+    reasons[#reasons + 1] = response.raw ~= '' and response.raw or 'GitHub gave no reason.'
   end
+
+  return 'GitHub could not ' .. action .. '.\nHTTP ' .. response.status .. ': ' .. table.concat(reasons, '\n')
 end
 
----Get information about an organization on GitHub
----@param access_token string Your GitHub PAT (Personal Access Token)
----@param org string Name of the organization to get information about
----@return boolean Ok If proccess was executed successfully
----@return GitHubGetOrgSuccessResponse|GitHubErrorResponse|AgitateError Response
----Response properly formatted for the rest of `agitated.nvim`.
----Might contain the organization information relavant to the rest of Agitate or an error message
----@see GitHubGetOrgSuccessResponse
----@see GitHubErrorResponse
----@see AgitateError
-function M.get_organization(access_token, org)
-  -- Execute curl to get the organization information through the GitHub api
-  local raw_github_response = util.execute_command({
-    'curl',
-    '--silent',
-    '--show-error',
-    -- An argv list bypasses the shell, so curl's stderr is otherwise dropped
-    -- and a failed request produced an empty body with no explanation.
-    '--stderr',
-    '-',
-    '--location',
-    '-H',
-    'Authorization: token ' .. access_token,
-    '-H',
-    'Accept: application/vnd.github+json',
-    'https://api.github.com/orgs/' .. org,
-  })
-
-  -- Flatten the table response to string
-  local flattened_github_response = util.flatten_table(raw_github_response)
-
-  -- Trim any noise left of the first `{` or right of the last `}`
-  local json_lr_trim_ok, org_json = util.json_lr_trim(flattened_github_response)
-  if not json_lr_trim_ok then
-    return json_lr_trim_ok, agitate_error.unhandled('service.github.get_organization')
-  end
-
-  -- Return the processed response as a lua table
-  -- `vim.json.decode` raises on malformed input, and curl can emit a
-  -- partial body or a proxy error page. Raising here would crash the
-  -- command instead of returning the documented (ok, response) pair.
-  local decode_ok, json_decoded = pcall(vim.json.decode, org_json)
-
-  if not decode_ok then
-    return false,
-      {
-        message = 'service.github.get_organization -- Error: could not decode the response.\n'
-          .. tostring(json_decoded)
-          .. '\nResponse: '
-          .. flattened_github_response,
-      }
-  end
-
-  if json_decoded == nil or json_decoded == '' then
-    return false, agitate_error.unhandled('service.github.get_organization')
-  end
-
-  if json_decoded.message then
-    -- A 404 is how GitHub says "this name is a user", which is the common
-    -- case rather than a failure. Returning `unhandled` labelled it as a
-    -- defect in Agitate and made the error channel useless for real problems.
-    if json_decoded.message == 'Not Found' then
-      return false, json_decoded
+---Performs a request and hands back the decoded body on the expected status.
+---
+---Every GitHub endpoint Agitate uses has the same shape: succeed on one
+---status, otherwise explain what went wrong. Sharing that keeps the handling
+---in one place rather than repeating it once per endpoint.
+---
+---@param access_token string|nil Your GitHub PAT, optional for public endpoints
+---@param request table `{ path = string, method = string|nil, body = table|nil }`
+---@param action string What was being attempted, phrased to follow "could not"
+---@param expected number The status that means success
+---@param callback fun(ok: boolean, result: table|AgitateError) Completion handler
+function M.call(access_token, request, action, expected, callback)
+  http.request({
+    url = http.github_url(request.path),
+    method = request.method,
+    token = access_token,
+    body = request.body,
+  }, function(request_ok, response)
+    if not request_ok then
+      return callback(false, response)
     end
 
-    return false, { message = 'service.github.get_organization -- Error: ' .. json_decoded.message }
-  end
+    if response.status ~= expected then
+      return callback(false, { message = M.describe_failure(action, response) })
+    end
 
-  return true, json_decoded
+    -- `== nil` rather than falsey: `false` is valid JSON and decodes to a
+    -- Lua false, which a truthiness test would reject as "not JSON".
+    if response.body == nil then
+      return callback(false, { message = 'service.github -- Error: expected JSON from `' .. request.path .. '`.\nRaw response: ' .. response.raw })
+    end
+
+    callback(true, response.body)
+  end)
+end
+
+---Performs a plain GET, succeeding on 200.
+---@param access_token string|nil
+---@param path string
+---@param action string
+---@param callback fun(ok: boolean, result: table|AgitateError)
+function M.get(access_token, path, action, callback)
+  M.call(access_token, { path = path }, action, 200, callback)
+end
+
+---Determines whether a name belongs to an organization rather than a user.
+---
+---A 404 is the ordinary answer for a personal account, not a failure, so it
+---resolves to `false` rather than an error. Anything else, an expired token
+---or a rate limit for instance, is reported, because silently treating it as
+---"not an organization" would create the repository in the wrong place.
+---@param access_token string Your GitHub PAT
+---@param name string The user or organization name to test
+---@param callback fun(ok: boolean, result: boolean|AgitateError) Completion handler
+function M.is_organization(access_token, name, callback)
+  http.request({
+    url = http.github_url('orgs/' .. name),
+    token = access_token,
+  }, function(request_ok, response)
+    if not request_ok then
+      return callback(false, response)
+    end
+
+    -- A 200 alone is not enough. The transport reports `body = nil` when the
+    -- response was not JSON, which a proxy or an outage page can produce, and
+    -- treating that as an organization would create the repository under
+    -- `orgs/<name>` on the strength of an HTML error page.
+    if response.status == 200 then
+      -- `== nil` rather than falsey: `false` is valid JSON and decodes to a
+      -- Lua false, which a truthiness test would reject as "not JSON".
+      if response.body == nil then
+        return callback(false, {
+          message = 'service.github.is_organization -- Error: expected JSON from the organization lookup.\nRaw response: ' .. response.raw,
+        })
+      end
+
+      return callback(true, true)
+    end
+
+    if response.status == 404 then
+      return callback(true, false)
+    end
+
+    callback(false, { message = M.describe_failure('look up `' .. name .. '`', response) })
+  end)
+end
+
+---Creates a new remote repository on GitHub.
+---@param access_token string Your GitHub PAT
+---@param options CreateRepositoryOptions Where and what to create
+---@param callback fun(ok: boolean, result: GitHubNewRepoSuccessResponse|AgitateError) Completion handler
+function M.create_repository(access_token, options, callback)
+  M.call(
+    access_token,
+    {
+      path = options.path .. '/repos',
+      method = 'POST',
+      body = {
+        name = options.name,
+        private = options.is_private,
+      },
+    },
+    'create the repository `' .. options.name .. '`',
+    201,
+    function(created_ok, result)
+      if not created_ok then
+        return callback(false, result)
+      end
+
+      -- Type checked: the transport allows any JSON type, so a valid but
+      -- unexpected body such as a bare string would raise on indexing rather
+      -- than be reported as a malformed success.
+      if type(result) ~= 'table' or not result.html_url then
+        return callback(false, {
+          message = 'service.github.create_repository -- Error: GitHub reported success but returned no `html_url`.',
+        })
+      end
+
+      callback(true, result)
+    end
+  )
 end
 
 return M

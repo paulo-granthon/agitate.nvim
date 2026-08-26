@@ -51,17 +51,14 @@ function M.Create(optional_parameters)
     return agitate_error.throw('core.repo.Create -- Error: unrecognised arguments: ' .. table.concat(leftover, ' '))
   end
 
-  local repository_name = parameters['-r'] or util.get_directory_name()
-  local github_username = parameters['-u'] or options.github_username
   local visibility = parameters['-v']
 
-  -- Validated rather than compared. Anything other than the exact string
-  -- `private` used to mean public, so `-v privte` silently created a public
-  -- repository, which is the one mistake here that cannot be taken back.
   if visibility and visibility ~= 'public' and visibility ~= 'private' then
     return agitate_error.throw('core.repo.Create -- Error: `-v` expects `public` or `private`, got `' .. visibility .. '`')
   end
 
+  local repository_name = parameters['-r'] or util.get_directory_name()
+  local github_username = parameters['-u'] or options.github_username
   local is_private = visibility == 'private'
 
   local github_access_token = options.github_access_token
@@ -70,77 +67,45 @@ function M.Create(optional_parameters)
     return agitate_error.throw('core.repo.Create -- Error: undefined GitHub username or access token')
   end
 
-  local path = 'user'
+  github.is_organization(github_access_token, github_username, function(lookup_ok, result)
+    if not lookup_ok then
+      return agitate_error.throw(result)
+    end
 
-  -- Only a 404 means "this name is a user". Bad credentials, a rate limit or
-  -- a decode failure all also return `false`, and treating those as a user
-  -- posts the repository to `user/repos` under the wrong assumption.
-  local is_org, org_result = github.get_organization(github_access_token, github_username)
+    -- Named only after the error check. The callback's second value is a
+    -- boolean on success and an error object on failure, so calling it
+    -- `is_org` throughout invited reading the error as a truthy answer.
+    local is_org = result
 
-  if not is_org and org_result and org_result.message and org_result.message ~= 'Not Found' then
-    return agitate_error.throw(org_result)
-  end
-
-  if is_org then
     vim.notify(
-      (is_private and 'Private repository ' or 'Repository ') .. repository_name .. ' will be created under organization ' .. github_username,
+      (is_private and 'Private r' or 'R')
+        .. 'epository '
+        .. repository_name
+        .. ' will be created under '
+        .. (is_org and 'organization ' or 'user ')
+        .. github_username,
       vim.log.levels.INFO
     )
-    path = 'orgs/' .. github_username
-  else
-    vim.notify(
-      (is_private and 'Private repository ' or 'Repository ') .. repository_name .. ' will be created under user ' .. github_username,
-      vim.log.levels.INFO
-    )
-  end
 
-  local github_post_ok, github_post_response = github.post_new_repo(github_access_token, repository_name, is_private, path)
+    github.create_repository(github_access_token, {
+      name = repository_name,
+      is_private = is_private,
+      path = is_org and ('orgs/' .. github_username) or 'user',
+    }, function(created_ok, repository)
+      if not created_ok then
+        return agitate_error.throw(repository)
+      end
 
-  if not github_post_ok then
-    return agitate_error.throw(github_post_response)
-  end
-
-  if github_post_response.errors then
-    local first_error = github_post_response.errors[1]
-
-    return agitate_error.throw(
-      'core.repo.Create -- Error: failed to create repository at '
-        .. util.build_github_html_url(github_username, repository_name)
-        .. '\nReason: '
-        .. ((first_error and first_error.message) or vim.inspect(github_post_response.errors))
-    )
-  end
-
-  -- Checked before the html_url branch: an error body without an `errors`
-  -- array, such as `{"message":"Bad credentials"}`, otherwise fell through and
-  -- was reported as a missing `html_url`, hiding what GitHub actually said.
-  if github_post_response.message and not github_post_response.html_url then
-    return agitate_error.throw(
-      'core.repo.Create -- Error: failed to create repository at '
-        .. util.build_github_html_url(github_username, repository_name)
-        .. '\nReason: '
-        .. github_post_response.message
-    )
-  end
-
-  if not github_post_response.html_url then
-    return agitate_error.throw(
-      'core.repo.Create -- Error: repository creation at '
-        .. util.build_github_html_url(github_username, repository_name)
-        .. ' returned no `html_url`.'
-        .. '\nFull response: '
-        .. vim.inspect(github_post_response)
-    )
-  end
-
-  vim.notify(
-    'Created remote GitHub repository at '
-      .. github_post_response.html_url
-      .. '\nYou can initialize the current directory to this remote origin with `:AgitateRepoInit '
-      .. repository_name
-      .. '`',
-    vim.log.levels.INFO
-  )
+      vim.notify(
+        'Created remote GitHub repository at '
+          .. repository.html_url
+          .. '\nYou can initialize the current directory to this remote origin with `:AgitateRepoInit '
+          .. repository_name
+          .. '`',
+        vim.log.levels.INFO
+      )
+    end)
+  end)
 end
 
 ---Initialize a new repository and push to GitHub
@@ -169,9 +134,9 @@ function M.Init(optional_parameters)
     return agitate_error.throw('core.repo.Init -- Error: undefined GitHub username or repository name')
   end
 
-  -- Written directly rather than through a shell. `execute_command` runs a
-  -- string via `vim.fn.systemlist`, so the repository name was interpolated
-  -- into a shell command with a `>>` redirection.
+  -- Written directly rather than through `execute_command`, which passes a
+  -- string to `vim.fn.systemlist` and therefore to a shell. The repository
+  -- name would otherwise reach a shell command line with a `>>` redirection.
   if vim.fn.writefile({ '# ' .. github_repository_name }, 'README.md', 'a') ~= 0 then
     return agitate_error.throw('core.repo.Init -- Error: could not write README.md')
   end
