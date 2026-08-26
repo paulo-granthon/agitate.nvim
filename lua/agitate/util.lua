@@ -14,7 +14,7 @@ end
 ---@field skip? number The number of lines to skip before constructing the table
 
 ---Flattens a table of strings into a single space separated string
----@param lines table the table to flatten
+---@param lines string[] the lines to flatten
 ---@param opts? FlattenTableOptions the optional options table
 ---@return string Flattened The joined lines
 function M.flatten_table(lines, opts)

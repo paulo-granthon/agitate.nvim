@@ -63,7 +63,14 @@ function M.post_new_repo(access_token, repository, is_private, path)
     return json_lr_trim_ok, agitate_error.unhandled('service.github.post_new_repo')
   end
 
-  local json_decoded = vim.json.decode(repo_json)
+  -- `vim.json.decode` raises on malformed input, and curl can emit a
+  -- partial body or a proxy error page. Raising here would crash the
+  -- command instead of returning the documented (ok, response) pair.
+  local decode_ok, json_decoded = pcall(vim.json.decode, repo_json)
+
+  if not decode_ok then
+    return false, agitate_error.unhandled('service.github.post_new_repo')
+  end
 
   -- check if empty
   if json_decoded == nil or json_decoded == '' then
@@ -110,7 +117,14 @@ function M.get_organization(access_token, org)
   end
 
   -- Return the processed response as a lua table
-  local json_decoded = vim.json.decode(org_json)
+  -- `vim.json.decode` raises on malformed input, and curl can emit a
+  -- partial body or a proxy error page. Raising here would crash the
+  -- command instead of returning the documented (ok, response) pair.
+  local decode_ok, json_decoded = pcall(vim.json.decode, org_json)
+
+  if not decode_ok then
+    return false, agitate_error.unhandled('service.github.get_organization')
+  end
 
   if json_decoded == nil or json_decoded == '' then
     return false, agitate_error.unhandled('service.github.get_organization')
