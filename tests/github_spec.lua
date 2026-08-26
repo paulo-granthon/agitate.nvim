@@ -292,6 +292,32 @@ describe('service.github', function()
       assert.is_truthy(captured_request.url:find('issues?per_page=100&page=1', 1, true))
     end)
 
+    -- `{ "message": ... }` is a table with no array part, so it read as a
+    -- short page and came back as `ok` with an empty list.
+    it('rejects an object shaped body instead of reading it as an empty page', function()
+      respond_with(true, { status = 200, body = { message = 'Not Found' }, raw = '{}' })
+
+      local list_ok, result
+      github.get_all('token', 'repos/acme/thing/issues', 'list', function(value_ok, value)
+        list_ok, result = value_ok, value
+      end)
+
+      assert.is_false(list_ok)
+      assert.is_truthy(result.message:find('expected a list', 1, true))
+    end)
+
+    it('accepts an empty array as a legitimate empty page', function()
+      respond_with(true, { status = 200, body = {}, raw = '[]' })
+
+      local list_ok, result
+      github.get_all('token', 'repos/acme/thing/issues', 'list', function(value_ok, value)
+        list_ok, result = value_ok, value
+      end)
+
+      assert.is_true(list_ok)
+      assert.are.same({}, result)
+    end)
+
     it('passes a failure through instead of returning a partial list', function()
       respond_with(false, { message = 'curl exited with code 6' })
 

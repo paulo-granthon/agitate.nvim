@@ -82,10 +82,13 @@ function M.open(opts, callback)
       virtual_lines[#virtual_lines + 1] = { { line, 'Comment' } }
     end
 
-    -- Attached to the last line rather than inserted as text, so the help can
-    -- never end up submitted as part of the issue.
-    vim.api.nvim_buf_set_extmark(buffer, NAMESPACE, math.max(vim.api.nvim_buf_line_count(buffer) - 1, 0), 0, {
+    -- Anchored above the first line rather than below the last. Pinning it to
+    -- whatever the last line was at creation meant it drifted into the middle
+    -- of the buffer as soon as the user typed a body. Either way it is virtual
+    -- text, so it can never be submitted as part of the issue.
+    vim.api.nvim_buf_set_extmark(buffer, NAMESPACE, 0, 0, {
       virt_lines = virtual_lines,
+      virt_lines_above = true,
     })
   end
 
