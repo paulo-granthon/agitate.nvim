@@ -68,7 +68,8 @@ end
 ---@param path string Absolute path to write
 ---@param lines string[] The contents
 ---@param description string What is being written, for the messages
-local function write_file(path, lines, description)
+---@param command string The calling command, for the error prefix
+local function write_file(command, path, lines, description)
   -- `filereadable` answers "can I read this", not "is something here". An
   -- existing but unreadable file answered no, so the overwrite confirmation
   -- was skipped for exactly the paths where writing is most likely to be
@@ -86,7 +87,7 @@ local function write_file(path, lines, description)
   vim.fn.mkdir(vim.fn.fnamemodify(path, ':h'), 'p')
 
   if vim.fn.writefile(lines, path) ~= 0 then
-    return agitate_error.throw('core.file -- Error: could not write ' .. path)
+    return agitate_error.throw(command .. ' -- Error: could not write ' .. path)
   end
 
   vim.notify('Wrote ' .. description .. ' to ' .. path, vim.log.levels.INFO)
@@ -151,7 +152,7 @@ function M.Gitignore(optional_parameters)
         return agitate_error.throw('core.file.Gitignore -- Error: GitHub returned no content for the `' .. template .. '` template.')
       end
 
-      write_file(cwd_path('.gitignore'), vim.split(result.source, '\n'), 'the ' .. template .. ' gitignore template')
+      write_file('core.file.Gitignore', cwd_path('.gitignore'), vim.split(result.source, '\n'), 'the ' .. template .. ' gitignore template')
     end)
   end
 
@@ -216,7 +217,7 @@ function M.License(optional_parameters)
 
       local body = M.apply_license_placeholders(result.body, os.date('%Y'), author)
 
-      write_file(cwd_path('LICENSE'), vim.split(body, '\n'), (result.name or key) .. ' license')
+      write_file('core.file.License', cwd_path('LICENSE'), vim.split(body, '\n'), (result.name or key) .. ' license')
     end)
   end
 
@@ -276,7 +277,7 @@ function M.Funding(optional_parameters)
     return agitate_error.throw('core.file.Funding -- Error: `' .. username .. '` is not a valid GitHub account name.')
   end
 
-  write_file(cwd_path('.github/FUNDING.yml'), M.funding_content(username), 'a funding file')
+  write_file('core.file.Funding', cwd_path('.github/FUNDING.yml'), M.funding_content(username), 'a funding file')
 end
 
 return M
