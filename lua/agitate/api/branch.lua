@@ -28,8 +28,11 @@ function M.setup()
 
     branch_or_err.Delete(opts.fargs)
   end, {
-    nargs = '*',
-    desc = 'Delete a branch locally and, when it has one, its remote counterpart',
+    -- `+` rather than `*`: the branch name is required, so an empty
+    -- invocation is rejected by the command line instead of reaching the
+    -- core and failing there.
+    nargs = '+',
+    desc = 'Delete a named branch locally and, when it has one, its remote counterpart',
   })
 end
 

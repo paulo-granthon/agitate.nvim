@@ -83,12 +83,11 @@ end
 ---@param has_remote boolean Whether the branch exists on the remote
 ---@return table Plan `{ ok = false, reason = string }` or `{ ok = true, branch = string, delete_remote = boolean }`
 function M.plan_delete(branch, current, has_remote)
+  -- Deliberately no default. Defaulting to the current branch and then
+  -- refusing to delete the current branch meant the no argument form could
+  -- never succeed, while the README advertised it as the common case.
   if not branch or branch == '' then
-    if not current then
-      return { ok = false, reason = 'no branch name given, and the current branch could not be determined' }
-    end
-
-    branch = current
+    return { ok = false, reason = 'no branch name given. Pass `-b <branch>`, or the branch name as the first argument.' }
   end
 
   -- git refuses to delete the branch that is checked out, and doing it for the
@@ -116,10 +115,10 @@ function M.confirm_prompt(branch, delete_remote, remote)
   return 'Delete branch `' .. branch .. '` locally? It has no counterpart on `' .. remote .. '`.'
 end
 
----Delete a branch locally and, when it has one, its remote counterpart
+---Delete a named branch locally and, when it has one, its remote counterpart
 ---@param optional_parameters? string[] Parameters can be passed in order or explicitly
 ---with their corresponding flags:
----  -b: The name of the branch to delete. Defaults to the current branch.
+---  -b: The name of the branch to delete. Required.
 ---  -r: The remote to delete it from. Defaults to `origin`.
 function M.Delete(optional_parameters)
   local parameters, leftover, incomplete = parse_args({ '-b', '-r' }, optional_parameters)

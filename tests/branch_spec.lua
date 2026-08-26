@@ -23,20 +23,20 @@ describe('core.branch', function()
       assert.is_truthy(plan.reason:find('current branch', 1, true))
     end)
 
-    it('refuses when no branch is given and HEAD is detached', function()
-      local plan = branch.plan_delete(nil, nil, false)
+    -- There is no default. Defaulting to the current branch and then refusing
+    -- to delete the current branch made the no argument form unusable.
+    it('refuses when no branch is named', function()
+      for _, given in ipairs({ '' }) do
+        local plan = branch.plan_delete(given, 'main', false)
+
+        assert.is_false(plan.ok)
+        assert.is_truthy(plan.reason:find('no branch name given', 1, true))
+      end
+
+      local plan = branch.plan_delete(nil, 'main', false)
 
       assert.is_false(plan.ok)
-      assert.is_truthy(plan.reason:find('could not be determined', 1, true))
-    end)
-
-    -- Defaulting to the current branch would always hit the refusal above, so
-    -- an empty argument has to be treated the same as an explicit current one.
-    it('treats an empty branch name as no branch name', function()
-      local plan = branch.plan_delete('', 'main', false)
-
-      assert.is_false(plan.ok)
-      assert.is_truthy(plan.reason:find('current branch', 1, true))
+      assert.is_truthy(plan.reason:find('no branch name given', 1, true))
     end)
   end)
 
