@@ -82,8 +82,11 @@ jobs:
           # attempt and retry once, so a stuck run does not turn into a red
           # build.
           for attempt in 1 2; do
-            timeout 120 busted --lua=nlua
-            status=$?
+            # `run:` steps execute under `bash -e`, so a non-zero exit here
+            # would end the step before the status could be inspected. `|| status=$?`
+            # keeps the failure in hand instead of aborting on it.
+            status=0
+            timeout 120 busted --lua=nlua || status=$?
 
             if [ $status -eq 0 ]; then
               exit 0
@@ -97,7 +100,11 @@ jobs:
               exit $status
             fi
 
-            echo "::warning::test attempt $attempt timed out after 120s, retrying"
+            if [ "$attempt" -lt 2 ]; then
+              echo "::warning::test attempt $attempt timed out after 120s, retrying"
+            else
+              echo "::warning::test attempt $attempt timed out after 120s"
+            fi
           done
 
           echo "::error::tests timed out on every attempt"
