@@ -130,4 +130,90 @@ describe('core.branch', function()
       assert.is_false(branch.exists_on_remote('origin', 'a-branch-that-should-never-exist'))
     end)
   end)
+  describe('git', function()
+    ---Creates a repository with one commit and moves into it.
+    local function in_repository(body)
+      local previous = vim.fn.getcwd()
+      local directory = vim.fn.tempname()
+
+      vim.fn.mkdir(directory, 'p')
+      vim.fn.system({ 'git', '-C', directory, 'init', '-b', 'main' })
+      vim.fn.system({
+        'git',
+        '-C',
+        directory,
+        '-c',
+        'user.name=agitate tests',
+        '-c',
+        'user.email=tests@agitate.invalid',
+        'commit',
+        '--allow-empty',
+        '-m',
+        'init',
+        '--no-gpg-sign',
+      })
+
+      vim.fn.chdir(directory)
+
+      local called_ok, err = pcall(body)
+
+      vim.fn.chdir(previous)
+
+      assert(called_ok, err)
+    end
+
+    it('reports success and failure through its second return value', function()
+      in_repository(function()
+        local _, ok = branch.git({ 'rev-parse', 'HEAD' })
+        assert.is_true(ok)
+
+        local output, failed = branch.git({ 'branch', '-d', 'no-such-branch' })
+        assert.is_false(failed)
+        assert.is_true(#output > 0)
+      end)
+    end)
+
+    -- `|` is a valid git ref character and an Ex command separator. Routed
+    -- through `vim.cmd('G branch -d ' .. ref)` the suffix ran as a second Ex
+    -- command, so a branch named `topic|qall` quit Neovim on delete.
+    it('handles a ref containing a pipe as one argument', function()
+      in_repository(function()
+        local _, created = branch.git({ 'branch', 'topic|qall' })
+        assert.is_true(created)
+
+        local _, deleted = branch.git({ 'branch', '-D', 'topic|qall' })
+        assert.is_true(deleted)
+
+        local _, gone = branch.git({ 'rev-parse', '--verify', '--quiet', 'refs/heads/topic|qall' })
+        assert.is_false(gone)
+      end)
+    end)
+
+    -- The remote deletion is gated on this failing, so if git ever stopped
+    -- refusing here the gate would silently open.
+    it('refuses to delete an unmerged branch without force', function()
+      in_repository(function()
+        branch.git({ 'checkout', '-b', 'unmerged' })
+        vim.fn.writefile({ 'work' }, 'work.txt')
+        branch.git({ 'add', 'work.txt' })
+        branch.git({
+          '-c',
+          'user.name=agitate tests',
+          '-c',
+          'user.email=tests@agitate.invalid',
+          'commit',
+          '-m',
+          'work',
+          '--no-gpg-sign',
+        })
+        branch.git({ 'checkout', 'main' })
+
+        local _, safe = branch.git({ 'branch', '-d', 'unmerged' })
+        assert.is_false(safe)
+
+        local _, forced = branch.git({ 'branch', '-D', 'unmerged' })
+        assert.is_true(forced)
+      end)
+    end)
+  end)
 end)

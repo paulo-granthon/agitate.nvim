@@ -8,12 +8,25 @@ end
 local parse_args = require('agitate.parse_args')
 
 function M.CreateCheckoutAndPush(branch_name)
-  if branch_name ~= nil and branch_name ~= '' then
-    vim.cmd('G checkout -b ' .. branch_name)
-    vim.cmd('G push -u origin ' .. branch_name)
-  else
-    vim.notify('core.branch.CreateCheckoutAndPush -- Error: no branch name provided', vim.log.levels.ERROR)
+  if branch_name == nil or branch_name == '' then
+    return vim.notify('core.branch.CreateCheckoutAndPush -- Error: no branch name provided', vim.log.levels.ERROR)
   end
+
+  local checkout_output, checkout_ok = M.git({ 'checkout', '-b', branch_name })
+
+  if not checkout_ok then
+    return agitate_error.throw('core.branch.CreateCheckoutAndPush -- Error: could not create `' .. branch_name .. '`.\n' .. table.concat(checkout_output, '\n'))
+  end
+
+  local push_output, push_ok = M.git({ 'push', '-u', 'origin', branch_name })
+
+  if not push_ok then
+    return agitate_error.throw(
+      'core.branch.CreateCheckoutAndPush -- Error: created `' .. branch_name .. '` locally, but could not push it.\n' .. table.concat(push_output, '\n')
+    )
+  end
+
+  vim.notify('Created and pushed branch `' .. branch_name .. '`.', vim.log.levels.INFO)
 end
 
 ---Runs a git command directly and reports whether it succeeded.
@@ -23,7 +36,7 @@ end
 ---@param argv string[] The git command, without the leading `git`
 ---@return string[] output
 ---@return boolean ok
-local function git(argv)
+function M.git(argv)
   local command = { 'git' }
   vim.list_extend(command, argv)
 
@@ -36,7 +49,7 @@ end
 ---HEAD or outside a repository.
 ---@return string|nil
 function M.current_branch()
-  local output, git_ok = git({ 'rev-parse', '--abbrev-ref', 'HEAD' })
+  local output, git_ok = M.git({ 'rev-parse', '--abbrev-ref', 'HEAD' })
 
   if not git_ok or not output[1] or output[1] == '' or output[1] == 'HEAD' then
     return nil
@@ -54,7 +67,7 @@ end
 ---@param branch string
 ---@return boolean
 function M.exists_on_remote(remote, branch)
-  local _, git_ok = git({ 'rev-parse', '--verify', '--quiet', 'refs/remotes/' .. remote .. '/' .. branch })
+  local _, git_ok = M.git({ 'rev-parse', '--verify', '--quiet', 'refs/remotes/' .. remote .. '/' .. branch })
 
   return git_ok
 end
@@ -134,11 +147,40 @@ function M.Delete(optional_parameters)
     return vim.notify('Branch deletion cancelled.', vim.log.levels.INFO)
   end
 
-  vim.cmd('G branch ' .. (choice == 2 and '-D ' or '-d ') .. plan.branch)
+  -- Run git directly rather than through `:G`. A branch name is a valid git
+  -- ref, and a valid git ref may contain `|`, which Ex reads as a command
+  -- separator: `G branch -d topic|qall` deletes `topic` and then quits Neovim.
+  -- An argument vector is never parsed as Ex or by a shell, and it also
+  -- returns an exit status, which the remote deletion below depends on.
+  local delete_output, delete_ok = M.git({ 'branch', choice == 2 and '-D' or '-d', plan.branch })
 
-  if plan.delete_remote then
-    vim.cmd('G push ' .. remote .. ' --delete ' .. plan.branch)
+  if not delete_ok then
+    return agitate_error.throw('core.branch.Delete -- Error: could not delete `' .. plan.branch .. '` locally.\n' .. table.concat(delete_output, '\n'))
   end
+
+  vim.notify('Deleted `' .. plan.branch .. '` locally.', vim.log.levels.INFO)
+
+  if not plan.delete_remote then
+    return
+  end
+
+  -- Only reached once the local deletion actually succeeded. `-d` refuses an
+  -- unmerged branch, and deleting the remote copy after that refusal would
+  -- destroy the only remaining reference to that work.
+  local push_output, push_ok = M.git({ 'push', remote, '--delete', plan.branch })
+
+  if not push_ok then
+    return agitate_error.throw(
+      'core.branch.Delete -- Error: deleted `'
+        .. plan.branch
+        .. '` locally, but could not delete it from `'
+        .. remote
+        .. '`.\n'
+        .. table.concat(push_output, '\n')
+    )
+  end
+
+  vim.notify('Deleted `' .. plan.branch .. '` from `' .. remote .. '`.', vim.log.levels.INFO)
 end
 
 return M
