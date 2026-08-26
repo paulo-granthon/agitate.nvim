@@ -211,7 +211,9 @@ function M.get_all(access_token, path, action, callback)
       -- An empty JSON array is also an empty table, hence the `next` check
       -- rather than a length one.
       if type(result) ~= 'table' or (next(result) ~= nil and result[1] == nil) then
-        return callback(false, { message = 'service.github -- Error: expected a list from `' .. path .. '`.' })
+        return callback(false, {
+          message = 'service.github -- Error: expected a list from `' .. path .. '`, got ' .. vim.inspect(result, { newline = ' ', indent = '' }):sub(1, 200),
+        })
       end
 
       for _, item in ipairs(result) do
