@@ -104,7 +104,11 @@ end
 ---Without it, the available templates are offered for selection.
 function M.Gitignore(optional_parameters)
   local options = require('agitate.config').options
-  local parameters, leftover = parse_args({ '-t' }, optional_parameters)
+  local parameters, leftover, incomplete = parse_args({ '-t' }, optional_parameters)
+
+  if #incomplete > 0 then
+    return agitate_error.throw('core.file.Gitignore -- Error: missing a value for ' .. table.concat(incomplete, ' '))
+  end
 
   if #leftover > 0 then
     return agitate_error.throw('core.file.Gitignore -- Error: unrecognised arguments: ' .. table.concat(leftover, ' '))
@@ -149,7 +153,11 @@ end
 ---  -a: The copyright holder. Defaults to `file.license.author`, then the configured username.
 function M.License(optional_parameters)
   local options = require('agitate.config').options
-  local parameters, leftover = parse_args({ '-l', '-a' }, optional_parameters)
+  local parameters, leftover, incomplete = parse_args({ '-l', '-a' }, optional_parameters)
+
+  if #incomplete > 0 then
+    return agitate_error.throw('core.file.License -- Error: missing a value for ' .. table.concat(incomplete, ' '))
+  end
 
   if #leftover > 0 then
     return agitate_error.throw('core.file.License -- Error: unrecognised arguments: ' .. table.concat(leftover, ' '))
@@ -214,7 +222,11 @@ end
 ---@param optional_parameters? table<string> `-u` sets the username. Defaults to the configured one.
 function M.Funding(optional_parameters)
   local options = require('agitate.config').options
-  local parameters, leftover = parse_args({ '-u' }, optional_parameters)
+  local parameters, leftover, incomplete = parse_args({ '-u' }, optional_parameters)
+
+  if #incomplete > 0 then
+    return agitate_error.throw('core.file.Funding -- Error: missing a value for ' .. table.concat(incomplete, ' '))
+  end
 
   if #leftover > 0 then
     return agitate_error.throw('core.file.Funding -- Error: unrecognised arguments: ' .. table.concat(leftover, ' '))
