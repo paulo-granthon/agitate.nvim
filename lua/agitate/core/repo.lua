@@ -120,10 +120,14 @@ end
 function M.Init(optional_parameters)
   local options = require('agitate.config').options
 
-  local parameters, leftover = parse_args({
+  local parameters, leftover, incomplete = parse_args({
     '-r',
     '-u',
   }, optional_parameters)
+
+  if #incomplete > 0 then
+    return agitate_error.throw('core.repo.Init -- Error: missing a value for ' .. table.concat(incomplete, ' '))
+  end
 
   if #leftover > 0 then
     return agitate_error.throw('core.repo.Init -- Error: unrecognised arguments: ' .. table.concat(leftover, ' '))
@@ -136,7 +140,10 @@ function M.Init(optional_parameters)
     return agitate_error.throw('core.repo.Init -- Error: undefined GitHub username or repository name')
   end
 
-  local protocol = options.repo.init.remote_protocol
+  -- The option is documented and typed as optional, so an absent value means
+  -- the default rather than a mistake. Only a value that is present and wrong
+  -- is worth refusing.
+  local protocol = options.repo.init.remote_protocol or 'https'
 
   if protocol ~= 'https' and protocol ~= 'ssh' then
     return agitate_error.throw('core.repo.Init -- Error: `repo.init.remote_protocol` expects `https` or `ssh`, got `' .. tostring(protocol) .. '`')
