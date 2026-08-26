@@ -130,6 +130,7 @@ describe('util', function()
       local called_ok, err = pcall(body)
 
       vim.fn.chdir(previous)
+      vim.fn.delete(directory, 'rf')
 
       assert(called_ok, err)
     end
@@ -201,6 +202,7 @@ describe('util', function()
       local called_ok, err = pcall(body)
 
       vim.fn.chdir(previous)
+      vim.fn.delete(directory, 'rf')
 
       assert(called_ok, err)
     end
@@ -230,6 +232,7 @@ describe('util', function()
       local name = util.current_branch()
 
       vim.fn.chdir(previous)
+      vim.fn.delete(directory, 'rf')
 
       assert.are.equal('trunk', name)
     end)
@@ -244,6 +247,7 @@ describe('util', function()
       local name = util.current_branch()
 
       vim.fn.chdir(previous)
+      vim.fn.delete(directory, 'rf')
 
       assert.is_nil(name)
     end)
