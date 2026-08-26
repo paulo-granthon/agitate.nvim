@@ -163,6 +163,10 @@ function M.List(optional_parameters)
             view(resolved, entry.number)
           end,
           ['o'] = function(entry)
+            if not entry.html_url then
+              return agitate_error.throw('core.issue.List -- Error: #' .. tostring(entry.number) .. ' has no URL to open.')
+            end
+
             util.open_url(entry.html_url)
           end,
           ['c'] = function(entry)
