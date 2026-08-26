@@ -2,17 +2,21 @@ local M = {}
 
 local ok, agitate_error = pcall(require, 'agitate.error')
 if not ok then
-  return vim.notify(require('agitate.const.error').import, vim.log.levels.ERROR)
+  local message = require('agitate.const.error').import
+  vim.notify(message, vim.log.levels.ERROR)
+  error(message, 0)
 end
 
 local util_ok, util_or_err = pcall(require, 'agitate.util')
 if not util_ok then
-  return agitate_error.throw(util_or_err)
+  agitate_error.throw(util_or_err)
+  error(util_or_err, 0)
 end
 
 local types_ok, types_or_err = pcall(require, 'agitate.types.github')
 if not types_ok then
-  return agitate_error.throw(types_or_err)
+  agitate_error.throw(types_or_err)
+  error(types_or_err, 0)
 end
 
 local util = util_or_err
@@ -117,7 +121,7 @@ function M.get_organization(access_token, org)
       return false, agitate_error.unhandled('service.github.get_organization')
     end
 
-    return false, agitate_error.throw('service.github.get_organization -- Error:' .. json_decoded.message)
+    return false, { message = 'service.github.get_organization -- Error: ' .. json_decoded.message }
   end
 
   return true, json_decoded

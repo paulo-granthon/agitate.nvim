@@ -2,7 +2,9 @@ local M = {}
 
 local types_ok, _ = pcall(require, 'agitate.types.error')
 if not types_ok then
-  return vim.notify(require('agitate.const.error').err_types, vim.log.levels.ERROR)
+  local message = require('agitate.const.error').err_types
+  vim.notify(message, vim.log.levels.ERROR)
+  error(message, 0)
 end
 
 ---@param location string Where the error happens
