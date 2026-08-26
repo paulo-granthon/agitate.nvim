@@ -14,13 +14,18 @@ function M.CreateCheckoutAndPush(branch_name)
     return agitate_error.throw('core.branch.CreateCheckoutAndPush -- Error: no branch name provided')
   end
 
+  -- No `--` here: git rejects it after `-b`. It is added to the `branch` and
+  -- `push` invocations below, where it is accepted, so a ref cannot be read as
+  -- an option. git itself refuses to create a branch whose name starts with
+  -- `-`, and `parse_args` will not accept such a value either, so this is
+  -- defence in depth rather than a reachable hole today.
   local checkout_output, checkout_ok = M._git({ 'checkout', '-b', branch_name })
 
   if not checkout_ok then
     return agitate_error.throw('core.branch.CreateCheckoutAndPush -- Error: could not create `' .. branch_name .. '`.\n' .. table.concat(checkout_output, '\n'))
   end
 
-  local push_output, push_ok = M._git({ 'push', '-u', 'origin', branch_name })
+  local push_output, push_ok = M._git({ 'push', '-u', 'origin', '--', branch_name })
 
   if not push_ok then
     return agitate_error.throw(
@@ -175,7 +180,7 @@ function M.Delete(optional_parameters)
   -- separator: `G branch -d topic|qall` deletes `topic` and then quits Neovim.
   -- An argument vector is never parsed as Ex or by a shell, and it also
   -- returns an exit status, which the remote deletion below depends on.
-  local delete_output, delete_ok = M._git({ 'branch', choice == 2 and '-D' or '-d', plan.branch })
+  local delete_output, delete_ok = M._git({ 'branch', choice == 2 and '-D' or '-d', '--', plan.branch })
 
   if not delete_ok then
     return agitate_error.throw('core.branch.Delete -- Error: could not delete `' .. plan.branch .. '` locally.\n' .. table.concat(delete_output, '\n'))
@@ -190,7 +195,7 @@ function M.Delete(optional_parameters)
   -- Only reached once the local deletion actually succeeded. `-d` refuses an
   -- unmerged branch, and deleting the remote copy after that refusal would
   -- destroy the only remaining reference to that work.
-  local push_output, push_ok = M._git({ 'push', remote, '--delete', plan.branch })
+  local push_output, push_ok = M._git({ 'push', remote, '--delete', '--', plan.branch })
 
   if not push_ok then
     return agitate_error.throw(
