@@ -123,8 +123,9 @@ end
 function M.Delete(optional_parameters)
   local parameters, leftover, incomplete = parse_args({ '-b', '-r' }, optional_parameters)
 
-  -- Without this, `:AgitateBranchDelete -b` falls through to the current
-  -- branch default and offers to delete something the user never named.
+  -- `:AgitateBranchDelete -b` leaves `-b` unset, which would otherwise be
+  -- indistinguishable from omitting it and would be reported as a missing
+  -- branch name rather than as the missing value it actually is.
   if #incomplete > 0 then
     return agitate_error.throw('core.branch.Delete -- Error: missing a value for ' .. table.concat(incomplete, ' '))
   end
