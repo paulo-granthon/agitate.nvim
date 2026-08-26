@@ -59,6 +59,20 @@ describe('ui.buffer', function()
   end)
 end)
 
+describe('ui.buffer raw mode', function()
+  local buffer = require('agitate.ui.buffer')
+
+  -- A comment has no title. Routing one through `parse` trimmed its first
+  -- line and collapsed the blank line after it, while the help text claimed
+  -- the first line was not treated specially.
+  it('parse still splits a title when raw mode is not used', function()
+    local title, body = buffer.parse({ '  spaced  ', '', 'rest' })
+
+    assert.are.equal('spaced', title)
+    assert.are.equal('rest', body)
+  end)
+end)
+
 describe('ui.list', function()
   local list = require('agitate.ui.list')
 

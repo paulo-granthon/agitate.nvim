@@ -85,6 +85,13 @@ describe('util', function()
       assert.are.equal('hello', repository)
     end)
 
+    -- `github.com.evil.com` is a different host that merely starts the same
+    -- way; resolving it as GitHub would send a token to it.
+    it('rejects a lookalike host that only starts with github.com', function()
+      assert.is_nil(util.parse_github_remote('ssh://git@github.com.evil.com/octocat/hello.git'))
+      assert.is_nil(util.parse_github_remote('https://github.com.evil.com/octocat/hello.git'))
+    end)
+
     it('returns nil for a remote that is not GitHub', function()
       local owner, repository = util.parse_github_remote('https://gitlab.com/octocat/hello.git')
 
