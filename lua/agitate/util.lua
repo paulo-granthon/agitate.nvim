@@ -79,10 +79,15 @@ function M.parse_github_remote(url)
   -- port. Without it an `ssh://` origin resolved to nil and every command that
   -- defaults from the remote asked for `-u` and `-r` instead.
   if not owner then
-    -- `[^/]*` after the host also matched `github.com.evil.com/owner/repo`,
-    -- so a lookalike remote resolved as GitHub. Only an optional numeric port
-    -- may follow the host.
-    owner, repository = url:match('^ssh://git@github%.com:?%d*/([^/]+)/([^/]+)$')
+    -- Two exact alternatives rather than one loose pattern. `:?%d*` made the
+    -- colon optional as well as the digits, so `github.com443/owner/repo` was
+    -- accepted as GitHub. Lua patterns have no optional group, so the port
+    -- form is spelled out separately.
+    owner, repository = url:match('^ssh://git@github%.com/([^/]+)/([^/]+)$')
+
+    if not owner then
+      owner, repository = url:match('^ssh://git@github%.com:%d+/([^/]+)/([^/]+)$')
+    end
   end
 
   if not owner then

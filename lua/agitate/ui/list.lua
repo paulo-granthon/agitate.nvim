@@ -21,7 +21,7 @@ end
 ---Alignment is computed from the data rather than a fixed guess, which is why
 ---this is a pure function and can be tested directly.
 ---
----@param entries table[] Each needs `number`, `title` and `state`
+---@param entries table[] Each needs `number`; `title` and `state` render empty when absent
 ---@return string[] lines
 function M.render(entries)
   local number_width = 0
