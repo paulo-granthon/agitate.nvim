@@ -177,6 +177,9 @@ describe('core.branch', function()
         local output, failed = branch._git({ 'branch', '-d', 'no-such-branch' })
         assert.is_false(failed)
         assert.is_true(#output > 0)
+        -- git writes this to stderr, which `systemlist` did not capture, so the
+        -- reason used to be lost entirely.
+        assert.is_truthy(table.concat(output, '\n'):lower():find('not found'))
       end)
     end)
 

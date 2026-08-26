@@ -11,7 +11,7 @@ local parse_args = require('agitate.parse_args')
 
 function M.CreateCheckoutAndPush(branch_name)
   if branch_name == nil or branch_name == '' then
-    return vim.notify('core.branch.CreateCheckoutAndPush -- Error: no branch name provided', vim.log.levels.ERROR)
+    return agitate_error.throw('core.branch.CreateCheckoutAndPush -- Error: no branch name provided')
   end
 
   local checkout_output, checkout_ok = M._git({ 'checkout', '-b', branch_name })
@@ -42,9 +42,21 @@ function M._git(argv)
   local command = { 'git' }
   vim.list_extend(command, argv)
 
-  local output = vim.fn.systemlist(command)
+  -- `vim.system` rather than `systemlist`, which captures stdout only. git
+  -- writes almost every failure to stderr, so a refused delete reported an
+  -- empty reason and the user saw only that something went wrong.
+  local completed = vim.system(command, { text = true }):wait()
 
-  return output, vim.v.shell_error == 0
+  local merged = {}
+  for _, stream in ipairs({ completed.stdout, completed.stderr }) do
+    for _, line in ipairs(vim.split(stream or '', '\n')) do
+      if line ~= '' then
+        merged[#merged + 1] = line
+      end
+    end
+  end
+
+  return merged, completed.code == 0
 end
 
 ---Returns the name of the currently checked out branch, or nil in a detached
