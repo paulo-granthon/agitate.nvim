@@ -47,6 +47,32 @@ function M.json_lr_trim(input_string)
   return false, nil
 end
 
+---Builds the git remote URL for a repository.
+---
+---`https` matches what the GitHub web UI offers by default. `ssh` produces the
+---`git@github.com:owner/repo.git` form, which is what a user with keys
+---configured needs; without it they would have to rewrite the remote by hand
+---after every `Init`.
+---@param username string The GitHub username or organization
+---@param repository_name string The name of the repository
+---@param protocol? string Either `https` or `ssh`, defaulting to `https`
+---@return string The git remote URL
+function M.build_github_remote_url(username, repository_name, protocol)
+  if protocol == 'ssh' then
+    return 'git@github.com:' .. username .. '/' .. repository_name .. '.git'
+  end
+
+  -- Only nil means "use the default". Treating every unrecognised value as
+  -- https would turn a typo into a silently wrong remote. `core.repo.Init`
+  -- validates before calling, so this guards the helper itself rather than
+  -- that one path.
+  if protocol ~= nil and protocol ~= 'https' then
+    error('util.build_github_remote_url -- Error: protocol expects `https` or `ssh`, got `' .. tostring(protocol) .. '`', 0)
+  end
+
+  return M.build_github_html_url(username, repository_name) .. '.git'
+end
+
 ---Builds a github html url from the provided username and repository name
 ---@param username string The GitHub username or organization
 ---@param repository_name string The name of the repository

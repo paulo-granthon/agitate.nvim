@@ -31,10 +31,12 @@ You can easily verify what the commands are and what they do by looking at the
 
 - `:AgitateRepoInit` - Initializes the current directory as a GitHub
   repository.  
-  Uses the repository name provided as an optional argument **_or_** the current
-  directory as the repository name if no argument is provided.
+  Takes `-r` for the repository name and `-u` for the username or organization,
+  in that order if you pass them positionally. Defaults to the current directory
+  name and the configured username.  
   This command basically does what GitHub tells you to do to contribute to a
-  newly created repository.
+  newly created repository. The `origin` remote it adds uses the protocol set by
+  `repo.init.remote_protocol`.
 
 #### Branch
 
@@ -107,6 +109,7 @@ require('agitate').setup({
     init = { -- Initializing repositories context
       show_status = false, -- show the status of the repository after initializing it
       first_commit_message = 'first commit', -- message to use when initializing locally
+      remote_protocol = 'https', -- protocol for the `origin` remote: 'https' or 'ssh'
     },
   },
 }
@@ -127,6 +130,7 @@ Features planned for implementation
   - [x] Initialize a local repository.
     - [x] Initialize a repository with explicit name parameter
     - [x] Initialize an Organization repository
+    - [x] Choose between an `https` and an `ssh` remote
 
   - [x] Create a new remote repository on GitHub.
     - [x] Create repository with explicit name parameter

@@ -9,3 +9,4 @@
 ---@class RepositoryInitConfig
 ---@field show_status? boolean|nil Call `:G` after `:AgitateRepoInit`
 ---@field first_commit_message? string|nil The message to use for the first commit
+---@field remote_protocol? string|nil Either `https` or `ssh`, used for the `origin` remote

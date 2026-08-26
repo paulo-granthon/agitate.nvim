@@ -73,8 +73,8 @@ function M.Create(optional_parameters)
   local path = 'user'
 
   -- Only a 404 means "this name is a user". Bad credentials, a rate limit or
-  -- a decode failure all also return `false`, and treating those as a user
-  -- posts the repository to `user/repos` under the wrong assumption.
+  -- a decode failure also return false, and treating those as a user posts the
+  -- repository to `user/repos` on a guess.
   local is_org, org_result = github.get_organization(github_access_token, github_username)
 
   if not is_org and org_result and org_result.message and org_result.message ~= 'Not Found' then
@@ -143,44 +143,94 @@ function M.Create(optional_parameters)
   )
 end
 
----Initialize a new repository and push to GitHub
----@param optional_parameters? string[] The value at each index depends on the number of parameters passed:
---- 1 optional_parameter: The name of the repository to create.
---- 2 optional_parameters: The first value is the GitHub username or organization
----    and the second is the name of the repository to create.
----
---- Defaults: [1] GitHub username from config, [2] Current directory name.
+---Initialize the current directory as a repository and push it to GitHub
+---@param optional_parameters? string[] Parameters can be passed in order or explicitly
+---with their corresponding flags:
+---  -r: The name of the repository. Defaults to the current directory name.
+---  -u: The GitHub username or organization. Defaults to the configured username.
 function M.Init(optional_parameters)
   local options = require('agitate.config').options
 
-  local github_repository_name = util.get_directory_name()
-  local github_username = options.github_username
+  local parameters, leftover, incomplete = parse_args({
+    '-r',
+    '-u',
+  }, optional_parameters)
 
-  if optional_parameters then
-    if #optional_parameters == 1 then
-      github_repository_name = optional_parameters[1] or github_repository_name
-    elseif #optional_parameters == 2 then
-      github_username = optional_parameters[1] or github_username
-      github_repository_name = optional_parameters[2] or github_repository_name
-    end
+  if #incomplete > 0 then
+    return agitate_error.throw('core.repo.Init -- Error: missing a value for ' .. table.concat(incomplete, ' '))
   end
 
-  if not github_username or not github_repository_name then
+  if #leftover > 0 then
+    return agitate_error.throw('core.repo.Init -- Error: unrecognised arguments: ' .. table.concat(leftover, ' '))
+  end
+
+  local github_repository_name = parameters['-r'] or util.get_directory_name()
+  local github_username = parameters['-u'] or options.github_username
+
+  -- An empty string passes a nil check but produces an invalid URL and an
+  -- invalid git command, so `-r ""` has to be rejected here rather than
+  -- surfacing later as a confusing failure.
+  if not github_username or github_username == '' or not github_repository_name or github_repository_name == '' then
     return agitate_error.throw('core.repo.Init -- Error: undefined GitHub username or repository name')
   end
 
-  -- Written directly rather than through a shell. `execute_command` runs a
-  -- string via `vim.fn.systemlist`, so the repository name was interpolated
-  -- into a shell command with a `>>` redirection.
+  -- The option is documented and typed as optional, so an absent value means
+  -- the default rather than a mistake. Only a value that is present and wrong
+  -- is worth refusing.
+  -- `== nil` rather than `or`: only an absent value means the default. `or`
+  -- also swallowed `false`, which is a misconfiguration the check below exists
+  -- to report.
+  local protocol = options.repo.init.remote_protocol
+  if protocol == nil then
+    protocol = 'https'
+  end
+
+  if protocol ~= 'https' and protocol ~= 'ssh' then
+    return agitate_error.throw('core.repo.Init -- Error: `repo.init.remote_protocol` expects `https` or `ssh`, got `' .. tostring(protocol) .. '`')
+  end
+
+  -- Written directly rather than shelled out to `echo ... >> README.md`, which
+  -- ran through a shell with the repository name interpolated unescaped. The
+  -- result is checked, so a readonly directory is reported here rather than
+  -- surfacing as a confusing `git add` failure two steps later.
   if vim.fn.writefile({ '# ' .. github_repository_name }, 'README.md', 'a') ~= 0 then
     return agitate_error.throw('core.repo.Init -- Error: could not write README.md')
   end
-  vim.cmd('G init')
-  vim.cmd('G add README.md')
-  vim.cmd('G commit -m "' .. options.repo.init.first_commit_message .. '"')
-  vim.cmd('G branch -M main')
-  vim.cmd('G remote add origin ' .. util.build_github_html_url(github_username, github_repository_name) .. '.git')
-  vim.cmd('G push -u origin main')
+  -- Run through git directly rather than `:G`. Every one of these
+  -- interpolated a value into an Ex command line: the commit message is user
+  -- configured and a `"` in it broke the quoting, while `|` in any of them is
+  -- an Ex separator that would run the remainder as a second command. An
+  -- argument vector is parsed by neither Ex nor a shell.
+  -- Defaulted rather than passed through: the option is optional, and a nil
+  -- would produce `git commit -m` with no message and a git usage error that
+  -- says nothing about Agitate's configuration.
+  local commit_message = options.repo.init.first_commit_message
+  if type(commit_message) ~= 'string' or commit_message == '' then
+    commit_message = 'first commit'
+  end
+
+  local steps = {
+    { 'init' },
+    { 'add', 'README.md' },
+    { 'commit', '-m', commit_message },
+    { 'branch', '-M', 'main' },
+    { 'remote', 'add', 'origin', util.build_github_remote_url(github_username, github_repository_name, protocol) },
+    { 'push', '-u', 'origin', 'main' },
+  }
+
+  -- Explicitly the working directory, not the buffer's. `Init` initialises the
+  -- directory the user is in, and its README is written relative to `getcwd()`,
+  -- so letting git resolve the buffer's directory instead would split one
+  -- command across two places: README here, `git init` there.
+  local directory = vim.fn.getcwd()
+
+  for _, step in ipairs(steps) do
+    local output, step_ok = util.git(step, directory)
+
+    if not step_ok then
+      return agitate_error.throw('core.repo.Init -- Error: `git ' .. table.concat(step, ' ') .. '` failed.\n' .. table.concat(output, '\n'))
+    end
+  end
 
   -- Open fugitive status window
   if options.repo.init.show_status then
