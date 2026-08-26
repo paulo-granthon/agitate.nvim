@@ -161,7 +161,10 @@ function M.create_repository(access_token, options, callback)
         return callback(false, result)
       end
 
-      if not result.html_url then
+      -- Type checked: the transport allows any JSON type, so a valid but
+      -- unexpected body such as a bare string would raise on indexing rather
+      -- than be reported as a malformed success.
+      if type(result) ~= 'table' or not result.html_url then
         return callback(false, {
           message = 'service.github.create_repository -- Error: GitHub reported success but returned no `html_url`.',
         })
