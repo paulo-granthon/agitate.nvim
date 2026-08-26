@@ -39,8 +39,6 @@ end
 
 ---Runs a git command directly and reports whether it succeeded.
 ---
----Read only queries go through git rather than fugitive because the answer is
----needed as a value here, not as output in a window.
 ---Returns the name of the currently checked out branch, or nil in a detached
 ---HEAD or outside a repository.
 ---@return string|nil
