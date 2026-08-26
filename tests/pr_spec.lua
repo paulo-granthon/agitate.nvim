@@ -47,6 +47,12 @@ describe('core.pr', function()
       assert.is_truthy(decision.reason:find('required review', 1, true))
     end)
 
+    -- The `draft` boolean is canonical; `mergeable_state` is not guaranteed to
+    -- say `draft` for every draft.
+    it('refuses a draft reported only by the draft flag', function()
+      assert.is_false(pr._plan_merge(clean({ draft = true, mergeable_state = 'clean' })).allowed)
+    end)
+
     it('refuses a draft', function()
       assert.is_false(pr._plan_merge(clean({ mergeable_state = 'draft' })).allowed)
     end)

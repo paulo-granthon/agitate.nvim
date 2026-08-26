@@ -66,7 +66,7 @@ end
 
 ---Parses arguments and resolves the context, reporting either failure.
 ---@param flags string[]
----@param optional_parameters table<string>|nil
+---@param optional_parameters string[]|nil
 ---@param command string
 ---@param callback fun(context: table, parameters: table<string, string>)
 local function prepare(flags, optional_parameters, command, callback)
@@ -131,6 +131,13 @@ function M._plan_merge(pull)
 
   if pull.state ~= 'open' then
     return { allowed = false, reason = 'it is ' .. tostring(pull.state) }
+  end
+
+  -- The canonical draft flag, checked before `mergeable_state`. A draft whose
+  -- state GitHub reports as something other than `draft` would otherwise reach
+  -- the confirmation prompt.
+  if pull.draft then
+    return { allowed = false, reason = 'it is still a draft' }
   end
 
   local blocked = BLOCKED_STATES[pull.mergeable_state]
@@ -262,7 +269,7 @@ function M.Create(optional_parameters)
 end
 
 ---List the pull requests of a repository
----@param optional_parameters? table<string> `-s` state, `-u` owner, `-r` repository.
+---@param optional_parameters? string[] `-s` state, `-u` owner, `-r` repository.
 function M.List(optional_parameters)
   prepare({ '-s', '-u', '-r' }, optional_parameters, 'core.pr.List', function(resolved, parameters)
     local state = parameters['-s'] or 'open'
@@ -287,11 +294,11 @@ function M.List(optional_parameters)
             view(resolved, entry.number)
           end,
           ['o'] = function(entry)
-            if not entry.html_url then
-              return agitate_error.throw('core.pr.List -- Error: #' .. tostring(entry.number) .. ' has no URL to open.')
-            end
+            local opened, reason = util.open_url(entry.html_url)
 
-            util.open_url(entry.html_url)
+            if not opened then
+              return agitate_error.throw('core.pr.List -- Error: #' .. tostring(entry.number) .. ': ' .. tostring(reason))
+            end
           end,
           ['c'] = function(entry)
             M._comment(resolved, entry.number)
@@ -306,7 +313,7 @@ function M.List(optional_parameters)
 end
 
 ---View a single pull request
----@param optional_parameters? table<string> `-n` number, `-u` owner, `-r` repository.
+---@param optional_parameters? string[] `-n` number, `-u` owner, `-r` repository.
 function M.View(optional_parameters)
   prepare({ '-n', '-u', '-r' }, optional_parameters, 'core.pr.View', function(resolved, parameters)
     local number = pull_number(parameters['-n'], 'core.pr.View')
@@ -396,7 +403,7 @@ function M._merge(resolved, number, method)
 end
 
 ---Comment on a pull request
----@param optional_parameters? table<string> `-n` number, `-u` owner, `-r` repository.
+---@param optional_parameters? string[] `-n` number, `-u` owner, `-r` repository.
 function M.Comment(optional_parameters)
   prepare({ '-n', '-u', '-r' }, optional_parameters, 'core.pr.Comment', function(resolved, parameters)
     local number = pull_number(parameters['-n'], 'core.pr.Comment')
@@ -408,7 +415,7 @@ function M.Comment(optional_parameters)
 end
 
 ---Merge a pull request
----@param optional_parameters? table<string> `-n` number, `-m` merge method
+---@param optional_parameters? string[] `-n` number, `-m` merge method
 ---(`merge`, `squash` or `rebase`, defaulting to `merge`), `-u` owner, `-r` repository.
 function M.Merge(optional_parameters)
   prepare({ '-n', '-m', '-u', '-r' }, optional_parameters, 'core.pr.Merge', function(resolved, parameters)
