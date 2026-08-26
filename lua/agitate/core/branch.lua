@@ -37,8 +37,6 @@ function M.CreateCheckoutAndPush(branch_name)
   vim.notify('Created and pushed branch `' .. branch_name .. '`.', vim.log.levels.INFO)
 end
 
----Runs a git command directly and reports whether it succeeded.
----
 ---Returns the name of the currently checked out branch, or nil in a detached
 ---HEAD or outside a repository.
 ---@return string|nil
