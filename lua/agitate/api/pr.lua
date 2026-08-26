@@ -2,7 +2,9 @@ local M = {}
 
 local ok, agitate_error = pcall(require, 'agitate.error')
 if not ok then
-  return vim.notify(require('agitate.const.error').import, vim.log.levels.ERROR)
+  local message = require('agitate.const.error').import
+  vim.notify(message, vim.log.levels.ERROR)
+  error(message, 0)
 end
 
 ---Registers one pull request command, deferring the `core.pr` require until it runs.

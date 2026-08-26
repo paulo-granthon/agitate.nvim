@@ -2,17 +2,21 @@ local M = {}
 
 local ok, agitate_error = pcall(require, 'agitate.error')
 if not ok then
-  return vim.notify(require('agitate.const.error').import, vim.log.levels.ERROR)
+  local message = require('agitate.const.error').import
+  vim.notify(message, vim.log.levels.ERROR)
+  error(message, 0)
 end
 
 local util_ok, util_or_err = pcall(require, 'agitate.util')
 if not util_ok then
-  return agitate_error.throw(util_or_err)
+  agitate_error.throw(util_or_err)
+  error(util_or_err, 0)
 end
 
 local github_ok, github_or_err = pcall(require, 'agitate.service.github')
 if not github_ok then
-  return agitate_error.throw(github_or_err)
+  agitate_error.throw(github_or_err)
+  error(github_or_err, 0)
 end
 
 local util = util_or_err
@@ -112,7 +116,7 @@ end
 ---while failing checks on an otherwise mergeable branch is the user's call.
 ---@param pull table The pull request, as GitHub returns it
 ---@return table decision `{ allowed = boolean, reason = string|nil, warning = string|nil }`
-function M.plan_merge(pull)
+function M._plan_merge(pull)
   if pull.merged then
     return { allowed = false, reason = 'it is already merged' }
   end
@@ -276,10 +280,10 @@ function M.List(optional_parameters)
             util.open_url(entry.html_url)
           end,
           ['c'] = function(entry)
-            M.comment(resolved, entry.number)
+            M._comment(resolved, entry.number)
           end,
           ['m'] = function(entry)
-            M.merge(resolved, entry.number, 'merge')
+            M._merge(resolved, entry.number, 'merge')
           end,
         },
       })
@@ -302,7 +306,7 @@ end
 ---Adds a comment to a pull request, given an already resolved context.
 ---@param resolved table
 ---@param number number
-function M.comment(resolved, number)
+function M._comment(resolved, number)
   editor.open({
     name = 'agitate://pr/' .. number .. '/comment',
     -- `raw` because a comment has no title. Without it the buffer went through
@@ -334,13 +338,13 @@ end
 ---@param resolved table
 ---@param number number
 ---@param method string
-function M.merge(resolved, number, method)
+function M._merge(resolved, number, method)
   github.get_pull_request(resolved.token, resolved.owner, resolved.repository, number, function(pull_ok, pull)
     if not pull_ok then
       return agitate_error.throw(pull)
     end
 
-    local decision = M.plan_merge(pull)
+    local decision = M._plan_merge(pull)
 
     if not decision.allowed then
       return agitate_error.throw('core.pr.Merge -- Error: cannot merge #' .. number .. ' because ' .. decision.reason .. '.')
@@ -384,7 +388,7 @@ function M.Comment(optional_parameters)
     local number = pull_number(parameters['-n'], 'core.pr.Comment')
 
     if number then
-      M.comment(resolved, number)
+      M._comment(resolved, number)
     end
   end)
 end
@@ -406,7 +410,7 @@ function M.Merge(optional_parameters)
       return agitate_error.throw('core.pr.Merge -- Error: `-m` expects `merge`, `squash` or `rebase`, got `' .. method .. '`')
     end
 
-    M.merge(resolved, number, method)
+    M._merge(resolved, number, method)
   end)
 end
 
