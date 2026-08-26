@@ -10,6 +10,7 @@ read_globals = {
 -- workspace would get linted.
 exclude_files = {
   '.luarocks/**',
+  'luarocks/**',
   'lua_modules/**',
 }
 
